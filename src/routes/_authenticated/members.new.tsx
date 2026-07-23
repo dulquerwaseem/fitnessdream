@@ -146,8 +146,24 @@ function NewMemberPage() {
         });
       }
     }
+
+    if (leadId) {
+      // Find converted stage and link the lead
+      const { data: convertedStage } = await supabase.from("lead_stages").select("id").eq("is_converted", true).limit(1).maybeSingle();
+      await supabase.from("leads").update({
+        converted_member_id: member.id,
+        converted_at: new Date().toISOString(),
+        stage_id: convertedStage?.id ?? undefined,
+      }).eq("id", leadId);
+      await supabase.from("lead_activities").insert({
+        lead_id: leadId,
+        kind: "system",
+        body: `Converted to member ${form.full_name}`,
+      });
+    }
+
     setSaving(false);
-    toast.success("Member added");
+    toast.success(leadId ? "Lead converted to member" : "Member added");
     navigate({ to: "/members/$id", params: { id: member.id } });
   };
 
