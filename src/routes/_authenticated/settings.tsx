@@ -247,6 +247,15 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="stages">
+          <LeadStagesSettings />
+        </TabsContent>
+
+        <TabsContent value="lead-templates">
+          <LeadTemplatesSettings />
+        </TabsContent>
+
+
         <TabsContent value="backup">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
