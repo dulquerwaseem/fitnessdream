@@ -15,6 +15,7 @@ import { normalizePhone } from "@/lib/phone";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut } from "lucide-react";
+import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -194,6 +195,8 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="gym"><Building2 className="h-3.5 w-3.5 mr-1" /> Gym</TabsTrigger>
           <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="stages">Lead pipeline</TabsTrigger>
+          <TabsTrigger value="lead-templates">Lead templates</TabsTrigger>
           <TabsTrigger value="backup">Backup & restore</TabsTrigger>
         </TabsList>
 
@@ -243,6 +246,15 @@ function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="stages">
+          <LeadStagesSettings />
+        </TabsContent>
+
+        <TabsContent value="lead-templates">
+          <LeadTemplatesSettings />
+        </TabsContent>
+
 
         <TabsContent value="backup">
           <div className="grid gap-4 md:grid-cols-2">

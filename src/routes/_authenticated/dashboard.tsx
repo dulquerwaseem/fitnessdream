@@ -220,6 +220,100 @@ function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <LeadsWidget />
+    </div>
+  );
+}
+
+function LeadsWidget() {
+  const { data } = useQuery({
+    queryKey: ["leads-widget"],
+    queryFn: async () => {
+      const [stagesRes, leadsRes] = await Promise.all([
+        supabase.from("lead_stages").select("*").order("order_index"),
+        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id, converted_at, full_name, phone"),
+      ]);
+      const stages = stagesRes.data ?? [];
+      const leads = leadsRes.data ?? [];
+      const now = Date.now();
+      const dueToday = leads.filter(l => {
+        if (l.converted_member_id) return false;
+        if (l.next_follow_up_at) {
+          const t = new Date(l.next_follow_up_at).getTime();
+          if (t <= now) return true;
+        }
+        const stage = stages.find(s => s.id === l.stage_id);
+        if (!stage?.follow_up_days) return false;
+        const anchor = l.last_contacted_at ?? l.created_at;
+        return now - new Date(anchor).getTime() > stage.follow_up_days * 86400000;
+      });
+      const byStage = stages.map(s => ({
+        id: s.id,
+        name: s.name,
+        count: leads.filter(l => l.stage_id === s.id).length,
+        isConverted: s.is_converted,
+      }));
+      const converted = leads.filter(l => l.converted_member_id).length;
+      const total = leads.length;
+      const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+      return { byStage, dueToday, conversionRate, total, converted };
+    },
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="grid gap-6 md:grid-cols-3 mt-6">
+      <Card className="md:col-span-2">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-display">Lead pipeline</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data.total} total · {data.converted} converted · {data.conversionRate}% conversion rate
+            </p>
+          </div>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/leads">Open pipeline <ArrowRight className="h-3.5 w-3.5 ml-1" /></Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2">
+            {data.byStage.map(s => (
+              <Link key={s.id} to="/leads" className="p-3 rounded-lg border card-hover">
+                <div className="text-xs text-muted-foreground">{s.name}</div>
+                <div className="text-2xl font-display font-bold">{s.count}</div>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-display">Follow-ups due</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Leads waiting on a reply.</p>
+          </div>
+          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">{data.dueToday.length}</Badge>
+        </CardHeader>
+        <CardContent className="p-0">
+          {data.dueToday.length === 0 ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">All caught up.</div>
+          ) : (
+            <div className="divide-y">
+              {data.dueToday.slice(0, 5).map(l => (
+                <Link key={l.id} to="/leads/$id" params={{ id: l.id }} className="flex items-center justify-between p-3 gap-3 hover:bg-muted/40">
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{l.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{l.phone}</div>
+                  </div>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

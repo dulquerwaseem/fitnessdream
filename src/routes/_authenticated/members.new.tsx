@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,12 @@ import { PageHeader } from "@/components/page-header";
 import { normalizePhone } from "@/lib/phone";
 import { addMonthsISO, todayISO } from "@/lib/format";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const searchSchema = z.object({ leadId: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/members/new")({
+  validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Add member — Fitness Dream" },
@@ -25,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/members/new")({
 
 function NewMemberPage() {
   const navigate = useNavigate();
+  const { leadId } = Route.useSearch();
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
     queryFn: async () => (await supabase.from("plans").select("*").eq("active", true).order("duration_months")).data ?? [],
@@ -32,6 +37,11 @@ function NewMemberPage() {
   const { data: trainers } = useQuery({
     queryKey: ["trainers"],
     queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+  });
+  const { data: lead } = useQuery({
+    queryKey: ["lead-for-convert", leadId],
+    enabled: !!leadId,
+    queryFn: async () => (await supabase.from("leads").select("*").eq("id", leadId!).maybeSingle()).data,
   });
 
   const [form, setForm] = useState({
@@ -49,6 +59,19 @@ function NewMemberPage() {
     notes: "",
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (lead) {
+      setForm(f => ({
+        ...f,
+        full_name: lead.full_name ?? f.full_name,
+        phone: lead.phone ?? f.phone,
+        email: lead.email ?? f.email,
+        plan_id: lead.interested_plan_id ?? f.plan_id,
+        notes: lead.notes ?? f.notes,
+      }));
+    }
+  }, [lead]);
 
   const chosenPlan = plans?.find((p) => p.id === form.plan_id);
   const expiry = chosenPlan && form.start_date ? addMonthsISO(form.start_date, chosenPlan.duration_months) : "";
@@ -123,8 +146,24 @@ function NewMemberPage() {
         });
       }
     }
+
+    if (leadId) {
+      // Find converted stage and link the lead
+      const { data: convertedStage } = await supabase.from("lead_stages").select("id").eq("is_converted", true).limit(1).maybeSingle();
+      await supabase.from("leads").update({
+        converted_member_id: member.id,
+        converted_at: new Date().toISOString(),
+        stage_id: convertedStage?.id ?? undefined,
+      }).eq("id", leadId);
+      await supabase.from("lead_activities").insert({
+        lead_id: leadId,
+        kind: "system",
+        body: `Converted to member ${form.full_name}`,
+      });
+    }
+
     setSaving(false);
-    toast.success("Member added");
+    toast.success(leadId ? "Lead converted to member" : "Member added");
     navigate({ to: "/members/$id", params: { id: member.id } });
   };
 
