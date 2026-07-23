@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Settings,
   Flame,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -23,6 +24,7 @@ import {
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Leads", url: "/leads", icon: Sparkles },
   { title: "Members", url: "/members", icon: Users },
   { title: "Staff", url: "/staff", icon: UserCog },
   { title: "Billing", url: "/billing", icon: Receipt },
