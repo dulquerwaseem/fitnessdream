@@ -2,6 +2,30 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { fmtCurrency, fmtDate } from "./format";
 
+export function downloadInvoicePdf(args: {
+  invoice: { number: string; issued_at: string; subtotal: number; total: number; amount_paid: number; notes: string | null };
+  items: Array<{ description: string; qty: number; unit_price: number; amount: number }>;
+  member: { full_name?: string; phone?: string } | null;
+  gym: { name?: string; address?: string | null; phone?: string | null; currency_symbol?: string } | null | undefined;
+}) {
+  const doc = generateInvoicePdf({
+    gymName: args.gym?.name ?? "Fitness Dream",
+    gymAddress: args.gym?.address ?? null,
+    gymPhone: args.gym?.phone ?? null,
+    currencySymbol: args.gym?.currency_symbol ?? "₹",
+    number: args.invoice.number,
+    issuedAt: args.invoice.issued_at,
+    memberName: args.member?.full_name ?? "Walk-in",
+    memberPhone: args.member?.phone ?? null,
+    items: args.items,
+    subtotal: Number(args.invoice.subtotal),
+    total: Number(args.invoice.total),
+    amountPaid: Number(args.invoice.amount_paid),
+    notes: args.invoice.notes,
+  });
+  doc.save(`invoice-${args.invoice.number}.pdf`);
+}
+
 type Item = { description: string; qty: number; unit_price: number; amount: number };
 
 export type InvoicePdfInput = {

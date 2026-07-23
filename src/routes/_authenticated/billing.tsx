@@ -32,7 +32,7 @@ function BillingPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("invoices")
-        .select("id, invoice_no, total, amount_paid, status, issued_at, members(full_name, phone)")
+        .select("id, number, total, amount_paid, status, issued_at, member:members!invoices_member_id_fkey(full_name, phone)")
         .order("issued_at", { ascending: false })
         .limit(200);
       return data ?? [];
