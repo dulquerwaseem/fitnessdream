@@ -104,7 +104,7 @@ function LeadsPage() {
   const moveMut = useMutation({
     mutationFn: async ({ leadId, stageId }: { leadId: string; stageId: string }) => {
       const stage = stages?.find(s => s.id === stageId);
-      const updates: Record<string, unknown> = { stage_id: stageId };
+      const updates: { stage_id: string; converted_at?: string } = { stage_id: stageId };
       if (stage?.is_converted) updates.converted_at = new Date().toISOString();
       const { error } = await supabase.from("leads").update(updates).eq("id", leadId);
       if (error) throw error;
