@@ -43,12 +43,17 @@ function AttendancePage() {
     queryKey: ["attendance-today"],
     queryFn: async () => {
       const start = new Date(); start.setHours(0,0,0,0);
-      const { data } = await supabase.from("attendance")
-        .select("id, check_in, check_out, subject_id, members!attendance_member_fk(full_name, phone)")
+      const { data: rows } = await supabase.from("attendance")
+        .select("id, check_in, check_out, subject_id")
         .eq("subject_type", "member")
         .gte("check_in", start.toISOString())
         .order("check_in", { ascending: false });
-      return data ?? [];
+      const ids = Array.from(new Set((rows ?? []).map(r => r.subject_id)));
+      const { data: mems } = ids.length
+        ? await supabase.from("members").select("id, full_name, phone").in("id", ids)
+        : { data: [] as { id: string; full_name: string; phone: string }[] };
+      const map = new Map((mems ?? []).map(m => [m.id, m] as const));
+      return (rows ?? []).map(r => ({ ...r, member: map.get(r.subject_id) ?? null }));
     },
   });
 
@@ -104,7 +109,7 @@ function AttendancePage() {
           ) : (
             <div className="divide-y">
               {recent!.map((r) => {
-                const mem = r.members as { full_name?: string; phone?: string } | null;
+                const mem = r.member;
                 return (
                   <div key={r.id} className="flex items-center justify-between p-4 gap-3">
                     <div className="flex items-center gap-3 min-w-0">
