@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/members/new")({
 
 function NewMemberPage() {
   const navigate = useNavigate();
+  const { leadId } = Route.useSearch();
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
     queryFn: async () => (await supabase.from("plans").select("*").eq("active", true).order("duration_months")).data ?? [],
@@ -36,6 +37,11 @@ function NewMemberPage() {
   const { data: trainers } = useQuery({
     queryKey: ["trainers"],
     queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+  });
+  const { data: lead } = useQuery({
+    queryKey: ["lead-for-convert", leadId],
+    enabled: !!leadId,
+    queryFn: async () => (await supabase.from("leads").select("*").eq("id", leadId!).maybeSingle()).data,
   });
 
   const [form, setForm] = useState({
@@ -53,6 +59,19 @@ function NewMemberPage() {
     notes: "",
   });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (lead) {
+      setForm(f => ({
+        ...f,
+        full_name: lead.full_name ?? f.full_name,
+        phone: lead.phone ?? f.phone,
+        email: lead.email ?? f.email,
+        plan_id: lead.interested_plan_id ?? f.plan_id,
+        notes: lead.notes ?? f.notes,
+      }));
+    }
+  }, [lead]);
 
   const chosenPlan = plans?.find((p) => p.id === form.plan_id);
   const expiry = chosenPlan && form.start_date ? addMonthsISO(form.start_date, chosenPlan.duration_months) : "";
