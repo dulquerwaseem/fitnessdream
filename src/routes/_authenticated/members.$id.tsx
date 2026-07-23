@@ -65,10 +65,10 @@ function MemberDetail() {
   if (!m) return <div className="text-center py-16 text-muted-foreground">Member not found. <Link to="/members" className="text-primary story-link">Back to list</Link></div>;
 
   const freezeToggle = async () => {
-    const next = !m.frozen;
-    const { error } = await supabase.from("members").update({ frozen: next }).eq("id", id);
+    const isFrozen = !!m.frozen_at;
+    const { error } = await supabase.from("members").update({ frozen_at: isFrozen ? null : new Date().toISOString() }).eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success(next ? "Membership frozen" : "Membership resumed");
+    toast.success(isFrozen ? "Membership resumed" : "Membership frozen");
     qc.invalidateQueries({ queryKey: ["member", id] });
   };
 
@@ -96,7 +96,7 @@ function MemberDetail() {
       total_fee: total,
       amount_paid: paid,
       balance_due: balance,
-      frozen: false,
+      frozen_at: null,
     }).eq("id", id);
 
     const { data: inv } = await supabase.from("invoices").insert({
@@ -170,7 +170,7 @@ function MemberDetail() {
                 </DialogContent>
               </Dialog>
               <Button size="sm" variant="outline" onClick={freezeToggle} className="col-span-2">
-                {m.frozen ? <><Play className="h-3.5 w-3.5 mr-1" /> Resume</> : <><Snowflake className="h-3.5 w-3.5 mr-1" /> Freeze</>}
+                {m.frozen_at ? <><Play className="h-3.5 w-3.5 mr-1" /> Resume</> : <><Snowflake className="h-3.5 w-3.5 mr-1" /> Freeze</>}
               </Button>
             </div>
           </CardContent>

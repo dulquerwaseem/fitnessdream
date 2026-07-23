@@ -52,7 +52,7 @@ function InvoiceDetail() {
     if (payAmt <= 0) return toast.error("Enter amount");
     const newPaid = Number(inv.amount_paid) + payAmt;
     const status = newPaid >= Number(inv.total) ? "paid" : "partial";
-    await supabase.from("payments").insert({ invoice_id: id, member_id: inv.member_id, amount: payAmt, mode: payMode });
+    await supabase.from("payments").insert({ invoice_id: id, member_id: inv.member_id, amount: payAmt, mode: payMode as "cash" | "upi" | "card" | "bank_transfer" | "unknown" });
     await supabase.from("invoices").update({ amount_paid: newPaid, status }).eq("id", id);
     if (inv.member_id) {
       const { data: mem } = await supabase.from("members").select("amount_paid, total_fee").eq("id", inv.member_id).maybeSingle();
@@ -74,7 +74,7 @@ function InvoiceDetail() {
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
       </Button>
       <PageHeader
-        title={`Invoice #${inv.invoice_no}`}
+        title={`Invoice #${inv.number}`}
         description={`Issued ${fmtDate(inv.issued_at)}`}
         actions={
           <>
