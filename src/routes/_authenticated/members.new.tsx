@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,12 @@ import { PageHeader } from "@/components/page-header";
 import { normalizePhone } from "@/lib/phone";
 import { addMonthsISO, todayISO } from "@/lib/format";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const searchSchema = z.object({ leadId: z.string().optional() });
 
 export const Route = createFileRoute("/_authenticated/members/new")({
+  validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Add member — Fitness Dream" },
