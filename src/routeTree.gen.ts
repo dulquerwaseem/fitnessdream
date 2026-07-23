@@ -23,6 +23,7 @@ import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMembersNewRouteImport } from './routes/_authenticated/members.new'
 import { Route as AuthenticatedMembersIdRouteImport } from './routes/_authenticated/members.$id'
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads.new'
+import { Route as AuthenticatedLeadsIdRouteImport } from './routes/_authenticated/leads.$id'
 import { Route as AuthenticatedBillingNewRouteImport } from './routes/_authenticated/billing.new'
 import { Route as AuthenticatedBillingIdRouteImport } from './routes/_authenticated/billing.$id'
 
@@ -95,6 +96,11 @@ const AuthenticatedLeadsNewRoute = AuthenticatedLeadsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedLeadsRoute,
 } as any)
+const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedLeadsRoute,
+} as any)
 const AuthenticatedBillingNewRoute = AuthenticatedBillingNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/staff': typeof AuthenticatedStaffRoute
   '/billing/$id': typeof AuthenticatedBillingIdRoute
   '/billing/new': typeof AuthenticatedBillingNewRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/staff': typeof AuthenticatedStaffRoute
   '/billing/$id': typeof AuthenticatedBillingIdRoute
   '/billing/new': typeof AuthenticatedBillingNewRoute
+  '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/_authenticated/staff': typeof AuthenticatedStaffRoute
   '/_authenticated/billing/$id': typeof AuthenticatedBillingIdRoute
   '/_authenticated/billing/new': typeof AuthenticatedBillingNewRoute
+  '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute
   '/_authenticated/members/$id': typeof AuthenticatedMembersIdRoute
   '/_authenticated/members/new': typeof AuthenticatedMembersNewRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/billing/$id'
     | '/billing/new'
+    | '/leads/$id'
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/staff'
     | '/billing/$id'
     | '/billing/new'
+    | '/leads/$id'
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/staff'
     | '/_authenticated/billing/$id'
     | '/_authenticated/billing/new'
+    | '/_authenticated/leads/$id'
     | '/_authenticated/leads/new'
     | '/_authenticated/members/$id'
     | '/_authenticated/members/new'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLeadsNewRouteImport
       parentRoute: typeof AuthenticatedLeadsRoute
     }
+    '/_authenticated/leads/$id': {
+      id: '/_authenticated/leads/$id'
+      path: '/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
+      parentRoute: typeof AuthenticatedLeadsRoute
+    }
     '/_authenticated/billing/new': {
       id: '/_authenticated/billing/new'
       path: '/new'
@@ -351,10 +370,12 @@ const AuthenticatedBillingRouteWithChildren =
   AuthenticatedBillingRoute._addFileChildren(AuthenticatedBillingRouteChildren)
 
 interface AuthenticatedLeadsRouteChildren {
+  AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
   AuthenticatedLeadsNewRoute: typeof AuthenticatedLeadsNewRoute
 }
 
 const AuthenticatedLeadsRouteChildren: AuthenticatedLeadsRouteChildren = {
+  AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
   AuthenticatedLeadsNewRoute: AuthenticatedLeadsNewRoute,
 }
 

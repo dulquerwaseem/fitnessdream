@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { fmtDate, fmtDateTime, initials } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { renderTemplate, waLink } from "@/lib/phone";
 import { toast } from "sonner";
 import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight } from "lucide-react";
