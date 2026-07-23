@@ -68,11 +68,11 @@ function BillingPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold">#{inv.invoice_no}</span>
+                    <span className="font-semibold">#{inv.number}</span>
                     <Badge variant="outline" className={`capitalize ${statusColor[inv.status!] ?? ""}`}>{inv.status}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {(inv.members as { full_name?: string; phone?: string } | null)?.full_name ?? "Walk-in"} · {fmtDate(inv.issued_at)}
+                    {inv.member?.full_name ?? "Walk-in"} · {fmtDate(inv.issued_at)}
                   </div>
                 </div>
                 <div className="text-right">
