@@ -12,8 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { normalizePhone } from "@/lib/phone";
-import { initials, fmtCurrency } from "@/lib/format";
+import { initials } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, UserCog } from "lucide-react";
 
@@ -30,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/staff")({
 function StaffPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", phone: "", email: "", role: "trainer", salary: 0 });
+  const [form, setForm] = useState({ full_name: "", phone: "", email: "", role_label: "trainer" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["staff-list"],
@@ -42,16 +41,14 @@ function StaffPage() {
     const { error } = await supabase.from("staff").insert({
       full_name: form.full_name.trim(),
       phone: form.phone.trim(),
-      phone_normalized: normalizePhone(form.phone),
       email: form.email || null,
-      role: form.role,
-      salary: Number(form.salary),
+      role_label: form.role_label,
       active: true,
     });
     if (error) return toast.error(error.message);
     toast.success("Staff added");
     setOpen(false);
-    setForm({ full_name: "", phone: "", email: "", role: "trainer", salary: 0 });
+    setForm({ full_name: "", phone: "", email: "", role_label: "trainer" });
     qc.invalidateQueries({ queryKey: ["staff-list"] });
   };
 
@@ -78,7 +75,7 @@ function StaffPage() {
                 <div className="space-y-1"><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))} /></div>
                 <div className="space-y-1">
                   <Label>Role</Label>
-                  <Select value={form.role} onValueChange={(v) => setForm(f => ({ ...f, role: v }))}>
+                  <Select value={form.role_label} onValueChange={(v) => setForm(f => ({ ...f, role_label: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="trainer">Trainer</SelectItem>
@@ -88,7 +85,6 @@ function StaffPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1"><Label>Monthly salary</Label><Input type="number" value={form.salary} onChange={(e) => setForm(f => ({ ...f, salary: Number(e.target.value) }))} /></div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
@@ -116,8 +112,7 @@ function StaffPage() {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold truncate">{s.full_name}</div>
-                  <div className="text-xs text-muted-foreground capitalize">{String(s.role).replace("_"," ")} · {s.phone}</div>
-                  <div className="text-xs mt-1">{fmtCurrency(s.salary)} / month</div>
+                  <div className="text-xs text-muted-foreground capitalize">{s.role_label.replace("_"," ")} · {s.phone}</div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
                   <Badge variant="outline" className={s.active ? "border-success/30 text-success" : "border-border text-muted-foreground"}>
