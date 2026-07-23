@@ -187,6 +187,199 @@ export type Database = {
           },
         ]
       }
+      lead_activities: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          lead_id: string
+          meta: Json | null
+          performed_by: string | null
+          template_key: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          lead_id: string
+          meta?: Json | null
+          performed_by?: string | null
+          template_key?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          lead_id?: string
+          meta?: Json | null
+          performed_by?: string | null
+          template_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          follow_up_days: number | null
+          id: string
+          is_converted: boolean
+          is_lost: boolean
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          follow_up_days?: number | null
+          id?: string
+          is_converted?: boolean
+          is_lost?: boolean
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          follow_up_days?: number | null
+          id?: string
+          is_converted?: boolean
+          is_lost?: boolean
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lead_templates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          converted_at: string | null
+          converted_member_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          interested_plan_id: string | null
+          interested_plan_name: string | null
+          last_contacted_at: string | null
+          next_follow_up_at: string | null
+          notes: string | null
+          phone: string
+          phone_normalized: string | null
+          source: Database["public"]["Enums"]["lead_source"]
+          stage_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          converted_at?: string | null
+          converted_member_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          interested_plan_id?: string | null
+          interested_plan_name?: string | null
+          last_contacted_at?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          phone: string
+          phone_normalized?: string | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          stage_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          converted_at?: string | null
+          converted_member_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          interested_plan_id?: string | null
+          interested_plan_name?: string | null
+          last_contacted_at?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          phone?: string
+          phone_normalized?: string | null
+          source?: Database["public"]["Enums"]["lead_source"]
+          stage_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_member_id_fkey"
+            columns: ["converted_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_converted_member_id_fkey"
+            columns: ["converted_member_id"]
+            isOneToOne: false
+            referencedRelation: "members_with_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_interested_plan_id_fkey"
+            columns: ["interested_plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "lead_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legacy_activity_log: {
         Row: {
           action: string
@@ -845,6 +1038,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "staff" | "front_desk"
       invoice_status: "paid" | "partial" | "unpaid"
+      lead_source:
+        | "walk_in"
+        | "referral"
+        | "instagram"
+        | "google"
+        | "whatsapp_inquiry"
+        | "other"
       member_status: "active" | "expiring_soon" | "expired" | "frozen"
       payment_mode: "cash" | "card" | "upi" | "bank_transfer" | "unknown"
     }
@@ -976,6 +1176,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "staff", "front_desk"],
       invoice_status: ["paid", "partial", "unpaid"],
+      lead_source: [
+        "walk_in",
+        "referral",
+        "instagram",
+        "google",
+        "whatsapp_inquiry",
+        "other",
+      ],
       member_status: ["active", "expiring_soon", "expired", "frozen"],
       payment_mode: ["cash", "card", "upi", "bank_transfer", "unknown"],
     },
