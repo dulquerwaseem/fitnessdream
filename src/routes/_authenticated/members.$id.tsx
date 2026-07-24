@@ -871,7 +871,7 @@ function MemberDetail() {
                 <SelectContent>{trainers?.map(t => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={ptPaid} onChange={e => setPtPaid(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={ptPaid} onChange={setPtPaid} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>
