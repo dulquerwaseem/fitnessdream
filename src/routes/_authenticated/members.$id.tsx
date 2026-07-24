@@ -176,7 +176,7 @@ function MemberDetail() {
   };
 
 
-  const handleRenew = async () => {
+  const _handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
     if (!plan) return toast.error("Select a plan");
     const baseDate = renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
