@@ -36,7 +36,7 @@ function useDashboard() {
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
       const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
 
       const [members, expiring, revenue, joins, dues] = await Promise.all([
         // Active = not frozen AND expiry_date >= today (includes "expiring soon")
