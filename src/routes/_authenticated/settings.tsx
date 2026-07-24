@@ -196,14 +196,7 @@ function SettingsPage() {
   const doRestore = async () => {
     if (!restore) return;
     setRestoring(true);
-    const source = forceAll
-      ? [
-          ...restore.toAdd,
-          ...restore.dupInFile.map(r => ({ full_name: r.name, phone: r.phone, phone_normalized: normalizePhone(r.phone) } as BackupMember & { phone_normalized: string })),
-        ]
-      : restore.toAdd;
-    // When forcing, also re-include rows that matched existing DB entries.
-    // We need the full member data from the original file for those, so re-parse via restore lists.
+    const source = forceAll ? restore.allValid : restore.toAdd;
     const rows = source.map(m => ({
       full_name: m.full_name,
       phone: m.phone,
