@@ -24,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/leads/new")({
 
 const sources = [
   { v: "walk_in", l: "Walk-in" },
+  { v: "phone_inquiry", l: "Phone Inquiry" },
   { v: "referral", l: "Referral" },
   { v: "instagram", l: "Instagram" },
   { v: "google", l: "Google" },
