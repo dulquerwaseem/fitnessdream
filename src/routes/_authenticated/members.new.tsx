@@ -124,7 +124,7 @@ function NewMemberPage() {
           subtotal: Number(form.total_fee),
           total: Number(form.total_fee),
           amount_paid: Number(form.amount_paid),
-          status: balance === 0 ? "paid" : Number(form.amount_paid) > 0 ? "partial" : "unpaid",
+          status: Number(form.amount_paid) <= 0 ? "unpaid" : Number(form.amount_paid) >= Number(form.total_fee) ? "paid" : "partial",
           notes: `Membership: ${chosenPlan?.name ?? "custom"}`,
         })
         .select("id")
