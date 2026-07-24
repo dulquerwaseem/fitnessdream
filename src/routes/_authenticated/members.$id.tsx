@@ -314,8 +314,10 @@ function MemberDetail() {
       const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
       const doc = generateInvoicePdf({
         gymName: gym?.name ?? "Fitness Dream",
+        gymTagline: (gym as any)?.tagline ?? null,
         gymAddress: gym?.address ?? null,
         gymPhone: gym?.phone ?? null,
+        gymEmail: (gym as any)?.email ?? null,
         currencySymbol: gym?.currency_symbol ?? "₹",
         number: inv.number,
         issuedAt: inv.issued_at,
@@ -326,6 +328,7 @@ function MemberDetail() {
         total: Number(inv.total),
         amountPaid: Number(inv.amount_paid),
         notes: inv.notes,
+        terms: (gym as any)?.invoice_terms ?? null,
       });
       const blob = doc.output("blob");
       const path = `${id}/invoice-${inv.number}.pdf`;
