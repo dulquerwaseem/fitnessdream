@@ -52,7 +52,7 @@ function InvoiceDetail() {
   const recordPayment = async () => {
     if (payAmt <= 0) return toast.error("Enter amount");
     const newPaid = Number(inv.amount_paid) + payAmt;
-    const status = newPaid >= Number(inv.total) ? "paid" : "partial";
+    const status = newPaid <= 0 ? "unpaid" : newPaid >= Number(inv.total) ? "paid" : "partial";
     await supabase.from("payments").insert({ invoice_id: id, member_id: inv.member_id, amount: payAmt, mode: payMode as "cash" | "upi" | "card" | "bank_transfer" | "unknown" });
     await supabase.from("invoices").update({ amount_paid: newPaid, status }).eq("id", id);
     if (inv.member_id) {
