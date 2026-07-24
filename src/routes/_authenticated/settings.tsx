@@ -304,6 +304,10 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="member-templates">
+          <MemberTemplatesEditor gym={gym} onSaved={() => qc.invalidateQueries({ queryKey: ["gym-settings"] })} />
+        </TabsContent>
+
         <TabsContent value="stages">
           <LeadStagesSettings />
         </TabsContent>
@@ -311,6 +315,7 @@ function SettingsPage() {
         <TabsContent value="lead-templates">
           <LeadTemplatesSettings />
         </TabsContent>
+
 
 
         <TabsContent value="backup">
