@@ -211,15 +211,7 @@ function DashboardPage() {
           ) : (
             <div className="divide-y">
               {data.expiringList.map((m) => (
-                <div key={m.id} className="flex items-center justify-between p-4 gap-4">
-                  <div className="min-w-0">
-                    <Link to="/members/$id" params={{ id: m.id }} className="font-medium story-link">{m.full_name}</Link>
-                    <div className="text-xs text-muted-foreground">Expires {fmtDate(m.expiry_date)}</div>
-                  </div>
-                  <Badge variant="outline" className="border-warning text-warning">
-                    <MessageCircle className="h-3 w-3 mr-1" /> {m.phone}
-                  </Badge>
-                </div>
+                <ExpiringRow key={m.id} m={m} />
               ))}
             </div>
           )}
