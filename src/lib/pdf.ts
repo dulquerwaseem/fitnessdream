@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { fmtCurrency, fmtDate } from "./format";
+import { fmtDate } from "./format";
 
 type Item = { description: string; qty: number; unit_price: number; amount: number };
 
