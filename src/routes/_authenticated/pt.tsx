@@ -109,7 +109,7 @@ function PTPage() {
                 <div className="space-y-1"><Label>Package</Label>
                   <Select value={form.package_id} onValueChange={(v) => setForm(f=>({...f, package_id:v}))}>
                     <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>{packages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions · ₹{p.price}</SelectItem>)}</SelectContent>
+                    <SelectContent>{packages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1"><Label>Start date</Label><Input type="date" value={form.starts_on} onChange={(e) => setForm(f=>({...f, starts_on:e.target.value}))} /></div>
@@ -153,7 +153,6 @@ function PTPage() {
                       <div className="text-2xl font-display font-bold">{remaining}<span className="text-sm text-muted-foreground">/{e.sessions_total}</span></div>
                       <div className="text-xs text-muted-foreground">sessions left</div>
                     </div>
-                    <div className="text-sm font-medium">{fmtCurrency(pkg?.price)}</div>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden mb-3">
                     <div className="h-full gradient-primary transition-all" style={{ width: `${pct}%` }} />

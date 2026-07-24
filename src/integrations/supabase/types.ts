@@ -1121,7 +1121,13 @@ export type Database = {
         | "whatsapp_inquiry"
         | "other"
       member_status: "active" | "expiring_soon" | "expired" | "frozen"
-      payment_mode: "cash" | "card" | "upi" | "bank_transfer" | "unknown"
+      payment_mode:
+        | "cash"
+        | "card"
+        | "upi"
+        | "bank_transfer"
+        | "unknown"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1261,7 +1267,14 @@ export const Constants = {
         "other",
       ],
       member_status: ["active", "expiring_soon", "expired", "frozen"],
-      payment_mode: ["cash", "card", "upi", "bank_transfer", "unknown"],
+      payment_mode: [
+        "cash",
+        "card",
+        "upi",
+        "bank_transfer",
+        "unknown",
+        "other",
+      ],
     },
   },
 } as const

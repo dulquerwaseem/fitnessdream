@@ -300,7 +300,7 @@ function SettingsPage() {
                   <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div>
                       <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.duration_months} mo · ₹{p.price}</div>
+                      <div className="text-xs text-muted-foreground">{p.duration_months} mo</div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={p.active ? "border-success/30 text-success" : "text-muted-foreground"}>{p.active ? "Active" : "Off"}</Badge>
@@ -311,10 +311,9 @@ function SettingsPage() {
               </div>
               <div className="mt-6 border-t pt-6">
                 <div className="text-sm font-semibold mb-2">Add plan</div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Input placeholder="Name" value={newPlan.name} onChange={(e) => setNewPlan(p => ({...p, name: e.target.value}))} />
                   <Input type="number" placeholder="Months" value={newPlan.duration_months} onChange={(e) => setNewPlan(p => ({...p, duration_months: Number(e.target.value)}))} />
-                  <Input type="number" placeholder="Price" value={newPlan.price} onChange={(e) => setNewPlan(p => ({...p, price: Number(e.target.value)}))} />
                   <Button onClick={addPlan} className="gradient-primary text-primary-foreground">Add plan</Button>
                 </div>
               </div>
