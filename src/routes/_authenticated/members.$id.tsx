@@ -765,7 +765,7 @@ function MemberDetail() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Plan</Label>
-              <Select value={renewPlan} onValueChange={(v) => { setRenewPlan(v); const p = plans?.find(pl => pl.id === v); if (p) setRenewPaid(Number(p.price)); }}>
+              <Select value={renewPlan} onValueChange={(v) => setRenewPlan(v)}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
                 <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {currency}{p.price}</SelectItem>)}</SelectContent>
               </Select>
