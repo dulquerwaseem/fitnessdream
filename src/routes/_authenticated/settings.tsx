@@ -54,12 +54,13 @@ function SettingsPage() {
     queryFn: async () => (await supabase.from("plans").select("*").order("duration_months")).data ?? [],
   });
 
-  const [gymForm, setGymForm] = useState({ name: "", tagline: "", phone: "", email: "", address: "", currency_symbol: "₹", whatsapp_country_code: "+91" });
+  const [gymForm, setGymForm] = useState({ name: "", tagline: "", phone: "", email: "", address: "", currency_symbol: "₹", whatsapp_country_code: "+91", invoice_terms: "" });
   useEffect(() => {
     if (gym) setGymForm({
       name: gym.name ?? "", tagline: gym.tagline ?? "", phone: gym.phone ?? "",
       email: gym.email ?? "", address: gym.address ?? "",
       currency_symbol: gym.currency_symbol ?? "₹", whatsapp_country_code: gym.whatsapp_country_code ?? "+91",
+      invoice_terms: (gym as any).invoice_terms ?? "",
     });
   }, [gym]);
 
