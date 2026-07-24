@@ -1,7 +1,7 @@
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { waLink } from "@/lib/phone";
+import { openWhatsApp } from "@/lib/phone";
 import { toast } from "sonner";
 
 type Props = {
@@ -30,8 +30,7 @@ export function WhatsAppButton({
       toast.error("No phone number on file");
       return;
     }
-    const url = waLink(phone, message, countryCode);
-    window.open(url, "_blank", "noopener,noreferrer");
+    openWhatsApp(phone, message, countryCode);
     if (memberId) {
       await supabase.from("messages_log").insert({
         member_id: memberId,

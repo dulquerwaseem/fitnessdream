@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { fmtCurrency, fmtDate } from "@/lib/format";
+import { openWhatsApp } from "@/lib/phone";
 import {
   Users, AlertTriangle, TrendingUp, UserPlus, Calendar, Wallet,
   ArrowRight, Plus, Receipt, MessageCircle,
@@ -276,8 +277,7 @@ function LeadsWidget() {
     e.preventDefault();
     e.stopPropagation();
     const msg = `Hi ${name.split(" ")[0]}, this is Fitness Dream — just following up on your inquiry. Let us know how we can help!`;
-    const digits = String(phone).replace(/[^\d]/g, "").slice(-10);
-    window.open(`https://wa.me/91${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+    openWhatsApp(phone, msg);
   };
 
   return (

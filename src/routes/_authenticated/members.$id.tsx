@@ -19,7 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
-import { normalizePhone, renderTemplate, waLink } from "@/lib/phone";
+import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import {
@@ -367,7 +367,7 @@ function MemberDetail() {
       gym: gym?.name ?? "Fitness Dream",
       invoice_link: invoiceLink,
     });
-    window.open(waLink(m.phone ?? "", msg, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener,noreferrer");
+    openWhatsApp(m.phone ?? "", msg, gym?.whatsapp_country_code ?? "91");
     supabase.from("messages_log").insert({
       member_id: id, channel: "whatsapp", template_key: "invoice", body: msg,
     }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
@@ -442,7 +442,7 @@ function MemberDetail() {
   };
   const sendMsg = async () => {
     if (!msgBody.trim()) return toast.error("Message body is empty");
-    window.open(waLink(m.phone ?? "", msgBody, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener");
+    openWhatsApp(m.phone ?? "", msgBody, gym?.whatsapp_country_code ?? "91");
     await supabase.from("messages_log").insert({
       member_id: id, channel: "whatsapp", template_key: msgTemplateKey || null, body: msgBody,
     });
