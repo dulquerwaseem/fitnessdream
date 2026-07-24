@@ -170,6 +170,9 @@ function LeadDetail() {
                 <Link to="/members/$id" params={{ id: lead.converted_member_id }}>View member <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             )}
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
           </div>
         }
       />
