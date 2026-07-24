@@ -306,6 +306,7 @@ function MemberDetail() {
     setInvOpen(false); setInvDesc(""); setInvAmount(0);
     qc.invalidateQueries();
   };
+  const [createInvoice, invoiceBusy] = useAsyncAction(_createInvoice);
 
   const downloadInvoice = async (invId: string) => {
     const [{ data: inv }, { data: items }, { data: invPays }] = await Promise.all([
