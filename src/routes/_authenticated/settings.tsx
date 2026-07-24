@@ -90,10 +90,10 @@ function SettingsPage() {
   // Backup export
   const exportJson = async () => {
     const [mem, staff, pay, inv, plansAll, gymAll] = await Promise.all([
-      supabase.from("members").select("*"),
-      supabase.from("staff").select("*"),
-      supabase.from("payments").select("*"),
-      supabase.from("invoices").select("*, invoice_items(*)"),
+      supabase.from("members").select("*").is("deleted_at", null),
+      supabase.from("staff").select("*").is("deleted_at", null),
+      supabase.from("payments").select("*").is("deleted_at", null),
+      supabase.from("invoices").select("*, invoice_items(*)").is("deleted_at", null),
       supabase.from("plans").select("*"),
       supabase.from("gym_settings").select("*"),
     ]);
