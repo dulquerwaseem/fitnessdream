@@ -285,8 +285,9 @@ function MemberDetail() {
     setPayOpen(false);
     qc.invalidateQueries();
   };
+  const [savePayment, paymentBusy] = useAsyncAction(_savePayment);
 
-  const createInvoice = async () => {
+  const _createInvoice = async () => {
     if (!invDesc.trim() || !invAmount) return toast.error("Description and amount required");
     const total = Number(invAmount);
     const { data: inv } = await supabase.from("invoices").insert({
