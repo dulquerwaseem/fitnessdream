@@ -13,7 +13,7 @@ import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/
 import { toast } from "sonner";
 import { Plus, Printer, Receipt, Send } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/billing")({
+export const Route = createFileRoute("/_authenticated/billing/")({
   head: () => ({
     meta: [
       { title: "Billing — Fitness Dream" },

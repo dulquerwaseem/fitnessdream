@@ -16,9 +16,9 @@ import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPtRouteImport } from './routes/_authenticated/pt'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
+import { Route as AuthenticatedBillingIndexRouteImport } from './routes/_authenticated/billing.index'
 import { Route as AuthenticatedMembersNewRouteImport } from './routes/_authenticated/members.new'
 import { Route as AuthenticatedMembersIdRouteImport } from './routes/_authenticated/members.$id'
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads.new'
@@ -60,11 +60,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
-  id: '/billing',
-  path: '/billing',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedMembersIndexRoute =
   AuthenticatedMembersIndexRouteImport.update({
     id: '/members/',
@@ -76,6 +71,12 @@ const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
   path: '/leads/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBillingIndexRoute =
+  AuthenticatedBillingIndexRouteImport.update({
+    id: '/billing/',
+    path: '/billing/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMembersNewRoute = AuthenticatedMembersNewRouteImport.update({
   id: '/members/new',
   path: '/members/new',
@@ -97,20 +98,19 @@ const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBillingNewRoute = AuthenticatedBillingNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthenticatedBillingRoute,
+  id: '/billing/new',
+  path: '/billing/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBillingIdRoute = AuthenticatedBillingIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedBillingRoute,
+  id: '/billing/$id',
+  path: '/billing/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -121,13 +121,13 @@ export interface FileRoutesByFullPath {
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
+  '/billing/': typeof AuthenticatedBillingIndexRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -138,6 +138,7 @@ export interface FileRoutesByTo {
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
+  '/billing': typeof AuthenticatedBillingIndexRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
 }
@@ -146,7 +147,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/billing': typeof AuthenticatedBillingRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pt': typeof AuthenticatedPtRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -157,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute
   '/_authenticated/members/$id': typeof AuthenticatedMembersIdRoute
   '/_authenticated/members/new': typeof AuthenticatedMembersNewRoute
+  '/_authenticated/billing/': typeof AuthenticatedBillingIndexRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
 }
@@ -165,7 +166,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/billing'
     | '/dashboard'
     | '/pt'
     | '/settings'
@@ -176,13 +176,13 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
+    | '/billing/'
     | '/leads/'
     | '/members/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/billing'
     | '/dashboard'
     | '/pt'
     | '/settings'
@@ -193,6 +193,7 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
+    | '/billing'
     | '/leads'
     | '/members'
   id:
@@ -200,7 +201,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/billing'
     | '/_authenticated/dashboard'
     | '/_authenticated/pt'
     | '/_authenticated/settings'
@@ -211,6 +211,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leads/new'
     | '/_authenticated/members/$id'
     | '/_authenticated/members/new'
+    | '/_authenticated/billing/'
     | '/_authenticated/leads/'
     | '/_authenticated/members/'
   fileRoutesById: FileRoutesById
@@ -272,13 +273,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/billing': {
-      id: '/_authenticated/billing'
-      path: '/billing'
-      fullPath: '/billing'
-      preLoaderRoute: typeof AuthenticatedBillingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/members/': {
       id: '/_authenticated/members/'
       path: '/members'
@@ -291,6 +285,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/leads/'
       preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/billing/': {
+      id: '/_authenticated/billing/'
+      path: '/billing'
+      fullPath: '/billing/'
+      preLoaderRoute: typeof AuthenticatedBillingIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/members/new': {
@@ -323,58 +324,49 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/billing/new': {
       id: '/_authenticated/billing/new'
-      path: '/new'
+      path: '/billing/new'
       fullPath: '/billing/new'
       preLoaderRoute: typeof AuthenticatedBillingNewRouteImport
-      parentRoute: typeof AuthenticatedBillingRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/billing/$id': {
       id: '/_authenticated/billing/$id'
-      path: '/$id'
+      path: '/billing/$id'
       fullPath: '/billing/$id'
       preLoaderRoute: typeof AuthenticatedBillingIdRouteImport
-      parentRoute: typeof AuthenticatedBillingRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
-interface AuthenticatedBillingRouteChildren {
-  AuthenticatedBillingIdRoute: typeof AuthenticatedBillingIdRoute
-  AuthenticatedBillingNewRoute: typeof AuthenticatedBillingNewRoute
-}
-
-const AuthenticatedBillingRouteChildren: AuthenticatedBillingRouteChildren = {
-  AuthenticatedBillingIdRoute: AuthenticatedBillingIdRoute,
-  AuthenticatedBillingNewRoute: AuthenticatedBillingNewRoute,
-}
-
-const AuthenticatedBillingRouteWithChildren =
-  AuthenticatedBillingRoute._addFileChildren(AuthenticatedBillingRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedBillingRoute: typeof AuthenticatedBillingRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPtRoute: typeof AuthenticatedPtRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
+  AuthenticatedBillingIdRoute: typeof AuthenticatedBillingIdRoute
+  AuthenticatedBillingNewRoute: typeof AuthenticatedBillingNewRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
   AuthenticatedLeadsNewRoute: typeof AuthenticatedLeadsNewRoute
   AuthenticatedMembersIdRoute: typeof AuthenticatedMembersIdRoute
   AuthenticatedMembersNewRoute: typeof AuthenticatedMembersNewRoute
+  AuthenticatedBillingIndexRoute: typeof AuthenticatedBillingIndexRoute
   AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
   AuthenticatedMembersIndexRoute: typeof AuthenticatedMembersIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedBillingRoute: AuthenticatedBillingRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPtRoute: AuthenticatedPtRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,
+  AuthenticatedBillingIdRoute: AuthenticatedBillingIdRoute,
+  AuthenticatedBillingNewRoute: AuthenticatedBillingNewRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
   AuthenticatedLeadsNewRoute: AuthenticatedLeadsNewRoute,
   AuthenticatedMembersIdRoute: AuthenticatedMembersIdRoute,
   AuthenticatedMembersNewRoute: AuthenticatedMembersNewRoute,
+  AuthenticatedBillingIndexRoute: AuthenticatedBillingIndexRoute,
   AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
   AuthenticatedMembersIndexRoute: AuthenticatedMembersIndexRoute,
 }
