@@ -251,6 +251,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="gym"><Building2 className="h-3.5 w-3.5 mr-1" /> Gym</TabsTrigger>
           <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="member-templates">Member templates</TabsTrigger>
           <TabsTrigger value="stages">Lead pipeline</TabsTrigger>
           <TabsTrigger value="lead-templates">Lead templates</TabsTrigger>
           <TabsTrigger value="backup">Backup & restore</TabsTrigger>
@@ -303,6 +304,10 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="member-templates">
+          <MemberTemplatesEditor gym={gym as unknown as { id?: number; templates?: Record<string, string> } | null | undefined} onSaved={() => qc.invalidateQueries({ queryKey: ["gym-settings"] })} />
+        </TabsContent>
+
         <TabsContent value="stages">
           <LeadStagesSettings />
         </TabsContent>
@@ -310,6 +315,7 @@ function SettingsPage() {
         <TabsContent value="lead-templates">
           <LeadTemplatesSettings />
         </TabsContent>
+
 
 
         <TabsContent value="backup">
@@ -451,3 +457,56 @@ function SettingsPage() {
     </div>
   );
 }
+
+const TEMPLATE_META: { key: string; label: string; hint: string }[] = [
+  { key: "welcome", label: "Welcome", hint: "Sent after a new member joins. Variables: {{name}}, {{plan}}, {{expiry}}, {{gym}}" },
+  { key: "renewal", label: "Renewal reminder (dynamic)", hint: "Used for any upcoming expiry. {{days_left}} is calculated live from today's date every time you open the message — never stored. Variables: {{name}}, {{plan_type}}, {{expiry_date}}, {{days_left}}, {{gym}}" },
+  { key: "renewal_expired", label: "Membership expired (dynamic)", hint: "Auto-picked when you choose the renewal template for a member whose expiry has already passed. Variables: {{name}}, {{plan_type}}, {{expiry_date}}, {{days_overdue}}, {{gym}}" },
+  { key: "invoice", label: "Invoice share", hint: "Variables: {{name}}, {{invoice_number}}, {{amount}}, {{currency}}, {{invoice_link}}, {{gym}}" },
+  { key: "payment_due", label: "Payment due", hint: "Variables: {{name}}, {{balance}}, {{currency}}, {{gym}}" },
+];
+
+function MemberTemplatesEditor({ gym, onSaved }: { gym: { id?: number; templates?: Record<string, string> } | null | undefined; onSaved: () => void }) {
+  const initial: Record<string, string> = (gym?.templates as Record<string, string>) ?? {};
+  const [drafts, setDrafts] = useState<Record<string, string>>(initial);
+  useEffect(() => { setDrafts((gym?.templates as Record<string, string>) ?? {}); }, [gym]);
+
+  const save = async (key: string) => {
+    if (!gym?.id) return;
+    const next = { ...((gym.templates as Record<string, string>) ?? {}), [key]: drafts[key] ?? "" };
+    const { error } = await supabase.from("gym_settings").update({ templates: next, updated_at: new Date().toISOString() }).eq("id", gym.id);
+    if (error) return toast.error(error.message);
+    toast.success(`${key} saved`);
+    onSaved();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Member WhatsApp templates</CardTitle>
+        <CardDescription>Edit wording freely — variables in double braces are filled in live each time a message is generated. {"{{days_left}}"} is always calculated from today's date and the member's expiry.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {TEMPLATE_META.map(t => (
+          <div key={t.key} className="p-3 rounded-lg border space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="font-mono text-[10px]">{t.key}</Badge>
+              <span className="text-sm font-medium">{t.label}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{t.hint}</p>
+            <Textarea
+              rows={3}
+              value={drafts[t.key] ?? ""}
+              onChange={(e) => setDrafts(d => ({ ...d, [t.key]: e.target.value }))}
+              className="font-mono text-sm"
+            />
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => save(t.key)}>Save {t.key}</Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+

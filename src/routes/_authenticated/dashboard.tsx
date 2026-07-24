@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { fmtCurrency, fmtDate } from "@/lib/format";
-import { openWhatsApp } from "@/lib/phone";
+import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
   Users, AlertTriangle, TrendingUp, UserPlus, Calendar, Wallet,
   ArrowRight, Plus, Receipt, MessageCircle,
@@ -210,16 +210,8 @@ function DashboardPage() {
             <div className="p-8 text-center text-sm text-muted-foreground">Nobody expiring in the next 7 days. Nice.</div>
           ) : (
             <div className="divide-y">
-              {data.expiringList.map((m) => (
-                <div key={m.id} className="flex items-center justify-between p-4 gap-4">
-                  <div className="min-w-0">
-                    <Link to="/members/$id" params={{ id: m.id }} className="font-medium story-link">{m.full_name}</Link>
-                    <div className="text-xs text-muted-foreground">Expires {fmtDate(m.expiry_date)}</div>
-                  </div>
-                  <Badge variant="outline" className="border-warning text-warning">
-                    <MessageCircle className="h-3 w-3 mr-1" /> {m.phone}
-                  </Badge>
-                </div>
+              {data.expiringList.filter(m => m.id).map((m) => (
+                <ExpiringRow key={m.id!} m={{ id: m.id!, full_name: m.full_name, expiry_date: m.expiry_date, phone: m.phone }} />
               ))}
             </div>
           )}
@@ -342,4 +334,51 @@ function LeadsWidget() {
     </div>
   );
 }
+
+function ExpiringRow({ m }: { m: { id: string; full_name: string | null; expiry_date: string | null; phone: string | null } }) {
+  const { data: gym } = useQuery({
+    queryKey: ["gym-settings"],
+    queryFn: async () => (await supabase.from("gym_settings").select("*").maybeSingle()).data,
+  });
+  // Dynamic days-left calculation, computed fresh every render.
+  let daysLeft = 0;
+  if (m.expiry_date) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const exp = new Date(m.expiry_date); exp.setHours(0, 0, 0, 0);
+    daysLeft = Math.round((exp.getTime() - today.getTime()) / 86400000);
+  }
+  const daysLabel = daysLeft === 0 ? "today" : daysLeft === 1 ? "1 day" : daysLeft > 0 ? `${daysLeft} days` : `${Math.abs(daysLeft)} day(s) ago`;
+  const send = async () => {
+    if (!m.phone) return;
+    const templates = ((gym?.templates as Record<string, string>) ?? {});
+    const key = daysLeft < 0 && templates["renewal_expired"] ? "renewal_expired" : "renewal";
+    const tpl = templates[key] ?? "Hi {{name}}, your {{gym}} membership expires in {{days_left}} ({{expiry_date}}). Renew today to avoid a break in access.";
+    const body = renderTemplate(tpl, {
+      name: m.full_name ?? "",
+      gym: gym?.name ?? "Fitness Dream",
+      expiry_date: m.expiry_date ? fmtDate(m.expiry_date) : "",
+      days_left: daysLabel,
+      days_overdue: daysLeft < 0 ? String(Math.abs(daysLeft)) : "0",
+      plan_type: "",
+    });
+    openWhatsApp(m.phone, body, gym?.whatsapp_country_code ?? "91");
+    await supabase.from("messages_log").insert({
+      member_id: m.id, channel: "whatsapp", template_key: key, body,
+    });
+  };
+  return (
+    <div className="flex items-center justify-between p-4 gap-4">
+      <div className="min-w-0">
+        <Link to="/members/$id" params={{ id: m.id }} className="font-medium story-link">{m.full_name}</Link>
+        <div className="text-xs text-muted-foreground">
+          Expires {fmtDate(m.expiry_date)} · <span className={daysLeft < 0 ? "text-destructive" : "text-warning"}>{daysLeft < 0 ? `Overdue ${daysLabel}` : `in ${daysLabel}`}</span>
+        </div>
+      </div>
+      <Button size="sm" variant="outline" onClick={send} className="gap-1" title="Send renewal reminder">
+        <MessageCircle className="h-3.5 w-3.5" /> Remind
+      </Button>
+    </div>
+  );
+}
+
 
