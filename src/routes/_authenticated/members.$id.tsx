@@ -320,6 +320,22 @@ function MemberDetail() {
     });
   };
 
+  const printInvoice = async (invId: string) => {
+    const [{ data: inv }, { data: items }, { data: invPays }] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", invId).single(),
+      supabase.from("invoice_items").select("*").eq("invoice_id", invId),
+      supabase.from("payments").select("mode").eq("invoice_id", invId).is("deleted_at", null),
+    ]);
+    if (!inv) return;
+    printInvoicePdf({
+      invoice: inv as any,
+      items: (items ?? []) as any,
+      member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
+      gym: gym as any,
+      paymentMethods: (invPays ?? []).map(p => p.mode as string),
+    });
+  };
+
   const shareInvoice = async (inv: any) => {
     const t = toast.loading("Preparing invoice link…");
     let invoiceLink = "";
