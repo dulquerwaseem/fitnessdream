@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate, todayISO } from "@/lib/format";
 import { toast } from "sonner";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import { Plus, Dumbbell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pt")({
@@ -50,7 +51,7 @@ function PTPage() {
     queryFn: async () => (await supabase.from("pt_packages").select("*").eq("active", true)).data ?? [],
   });
 
-  const create = async () => {
+  const _create = async () => {
     if (!form.member_id || !form.trainer_id || !form.package_id) return toast.error("Select member, trainer, and package");
     const pkg = packages?.find((p) => p.id === form.package_id);
     if (!pkg) return;
@@ -70,6 +71,7 @@ function PTPage() {
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["pt-enrollments"] });
   };
+  const [create, createBusy] = useAsyncAction(_create);
 
   const logSession = async (enrollmentId: string, remaining: number, used: number) => {
     if (remaining <= 0) return toast.error("No sessions left");
@@ -116,7 +118,7 @@ function PTPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button className="gradient-primary text-primary-foreground" onClick={create}>Create</Button>
+                <Button className="gradient-primary text-primary-foreground" onClick={() => create()} disabled={createBusy}>{createBusy ? "Processing…" : "Create"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>

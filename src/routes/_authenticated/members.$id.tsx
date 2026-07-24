@@ -25,6 +25,7 @@ import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { MoneyInput } from "@/components/money-input";
 import { toast } from "sonner";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
   Pencil, Plus, FileText, Download, Printer, Send, MessageCircle, Activity, Trash2,
@@ -175,7 +176,7 @@ function MemberDetail() {
   };
 
 
-  const handleRenew = async () => {
+  const _handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
     if (!plan) return toast.error("Select a plan");
     const baseDate = renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
@@ -214,6 +215,7 @@ function MemberDetail() {
     setRenewOpen(false);
     qc.invalidateQueries();
   };
+  const [handleRenew, renewBusy] = useAsyncAction(_handleRenew);
 
   const openEdit = () => {
     setEditForm({
@@ -257,7 +259,7 @@ function MemberDetail() {
     setPayDate(todayISO());
     setPayOpen(true);
   };
-  const savePayment = async () => {
+  const _savePayment = async () => {
     const amount = Number(payAmount);
     if (!amount || amount <= 0) return toast.error("Enter an amount");
     const paidAt = new Date(payDate + "T" + new Date().toISOString().slice(11, 19)).toISOString();
@@ -283,8 +285,9 @@ function MemberDetail() {
     setPayOpen(false);
     qc.invalidateQueries();
   };
+  const [savePayment, paymentBusy] = useAsyncAction(_savePayment);
 
-  const createInvoice = async () => {
+  const _createInvoice = async () => {
     if (!invDesc.trim() || !invAmount) return toast.error("Description and amount required");
     const total = Number(invAmount);
     const { data: inv } = await supabase.from("invoices").insert({
@@ -303,6 +306,7 @@ function MemberDetail() {
     setInvOpen(false); setInvDesc(""); setInvAmount(0);
     qc.invalidateQueries();
   };
+  const [createInvoice, invoiceBusy] = useAsyncAction(_createInvoice);
 
   const downloadInvoice = async (invId: string) => {
     const [{ data: inv }, { data: items }, { data: invPays }] = await Promise.all([
@@ -411,9 +415,12 @@ function MemberDetail() {
     }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
   };
 
-  const addPtPackage = async () => {
+  const _addPtPackage = async () => {
     const pkg = ptPackages?.find(p => p.id === ptPkg);
     if (!pkg) return toast.error("Select a package");
+    const total = Number(ptTotal);
+    const paid = Number(ptPaid);
+    if (total <= 0) return toast.error("Enter total fee");
     const expiresOn = new Date();
     expiresOn.setDate(expiresOn.getDate() + Number(pkg.validity_days ?? 60));
     await supabase.from("pt_enrollments").insert({
@@ -425,9 +432,6 @@ function MemberDetail() {
       starts_on: todayISO(),
       expires_on: expiresOn.toISOString().slice(0, 10),
     });
-    const total = Number(ptTotal);
-    const paid = Number(ptPaid);
-    if (total <= 0) return toast.error("Enter total fee");
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
       status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
@@ -443,6 +447,7 @@ function MemberDetail() {
     setPtOpen(false); setPtPkg(""); setPtTrainer(""); setPtTotal(0); setPtPaid(0); setPtPayMode("cash");
     qc.invalidateQueries();
   };
+  const [addPtPackage, ptBusy] = useAsyncAction(_addPtPackage);
 
   const logPtSession = async (enrollId: string, trainerId: string | null) => {
     await supabase.from("pt_sessions").insert({
@@ -847,7 +852,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={handleRenew}>Renew</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => handleRenew()} disabled={renewBusy}>{renewBusy ? "Processing…" : "Renew"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -896,7 +901,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={savePayment}>Save payment</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => savePayment()} disabled={paymentBusy}>{paymentBusy ? "Processing…" : "Save payment"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -911,7 +916,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={createInvoice}>Create</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => createInvoice()} disabled={invoiceBusy}>{invoiceBusy ? "Processing…" : "Create"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -955,7 +960,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={addPtPackage}>Add</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => addPtPackage()} disabled={ptBusy}>{ptBusy ? "Processing…" : "Add"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
