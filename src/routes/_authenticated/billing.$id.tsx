@@ -119,7 +119,7 @@ function InvoiceDetail() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
-                    <Button className="gradient-primary text-primary-foreground" onClick={recordPayment}>Save</Button>
+                    <Button className="gradient-primary text-primary-foreground" onClick={() => recordPayment()} disabled={payBusy}>{payBusy ? "Processing…" : "Save"}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
