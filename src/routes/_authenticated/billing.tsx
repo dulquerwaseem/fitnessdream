@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate } from "@/lib/format";
-import { Plus, Receipt } from "lucide-react";
+import { printInvoicePdf } from "@/lib/pdf";
+import { Plus, Printer, Receipt } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({
@@ -104,6 +105,32 @@ function BillingPage() {
                     <div className="text-xs text-destructive">Due {fmtCurrency(Number(inv.total) - Number(inv.amount_paid))}</div>
                   )}
                 </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="shrink-0"
+                  title="Print invoice"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const [{ data: full }, { data: items }, { data: pays }] = await Promise.all([
+                      supabase.from("invoices").select("*, members(full_name, phone)").eq("id", inv.id).single(),
+                      supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
+                      supabase.from("payments").select("mode").eq("invoice_id", inv.id).is("deleted_at", null),
+                    ]);
+                    const { data: gym } = await supabase.from("gym_settings").select("*").maybeSingle();
+                    if (!full) return;
+                    printInvoicePdf({
+                      invoice: full as any,
+                      items: (items ?? []) as any,
+                      member: (full as any).members ?? null,
+                      gym: gym as any,
+                      paymentMethods: (pays ?? []).map((p: any) => p.mode),
+                    });
+                  }}
+                >
+                  <Printer className="h-4 w-4" />
+                </Button>
               </CardContent></Card>
             </Link>
           ))}

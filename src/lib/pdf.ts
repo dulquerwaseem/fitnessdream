@@ -56,6 +56,35 @@ export function downloadInvoicePdf(args: {
   doc.save(`invoice-${args.invoice.number}.pdf`);
 }
 
+export function printInvoicePdf(args: Parameters<typeof downloadInvoicePdf>[0]) {
+  const doc = generateInvoicePdf({
+    gymName: args.gym?.name ?? "Fitness Dream",
+    gymTagline: args.gym?.tagline ?? null,
+    gymAddress: args.gym?.address ?? null,
+    gymPhone: args.gym?.phone ?? null,
+    gymEmail: args.gym?.email ?? null,
+    currencySymbol: args.gym?.currency_symbol ?? "₹",
+    number: args.invoice.number,
+    issuedAt: args.invoice.issued_at,
+    memberName: args.member?.full_name ?? "Walk-in",
+    memberPhone: args.member?.phone ?? null,
+    items: args.items,
+    subtotal: Number(args.invoice.subtotal),
+    total: Number(args.invoice.total),
+    amountPaid: Number(args.invoice.amount_paid),
+    notes: args.invoice.notes,
+    terms: args.gym?.invoice_terms ?? null,
+    paymentMethods: args.paymentMethods,
+  });
+  doc.autoPrint();
+  const url = doc.output("bloburl");
+  const w = window.open(url, "_blank");
+  if (!w) {
+    // Popup blocked — fall back to same-tab navigation
+    window.location.href = url as unknown as string;
+  }
+}
+
 // Brand palette
 const ORANGE: [number, number, number] = [255, 90, 31];
 const ORANGE_DEEP: [number, number, number] = [214, 64, 12];

@@ -20,14 +20,14 @@ import {
 } from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
-import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
+import { downloadInvoicePdf, generateInvoicePdf, printInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { MoneyInput } from "@/components/money-input";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity, Trash2,
+  Pencil, Plus, FileText, Download, Printer, Send, MessageCircle, Activity, Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
@@ -312,6 +312,22 @@ function MemberDetail() {
     ]);
     if (!inv) return;
     downloadInvoicePdf({
+      invoice: inv as any,
+      items: (items ?? []) as any,
+      member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
+      gym: gym as any,
+      paymentMethods: (invPays ?? []).map(p => p.mode as string),
+    });
+  };
+
+  const printInvoice = async (invId: string) => {
+    const [{ data: inv }, { data: items }, { data: invPays }] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", invId).single(),
+      supabase.from("invoice_items").select("*").eq("invoice_id", invId),
+      supabase.from("payments").select("mode").eq("invoice_id", invId).is("deleted_at", null),
+    ]);
+    if (!inv) return;
+    printInvoicePdf({
       invoice: inv as any,
       items: (items ?? []) as any,
       member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
@@ -612,6 +628,7 @@ function MemberDetail() {
                         <div className="flex flex-wrap gap-2">
                           {due > 0 ? <Button size="sm" variant="outline" onClick={() => openPayForInvoice(i)}>Record payment</Button> : null}
                           <Button size="sm" variant="outline" onClick={() => shareInvoice(i)}><Send className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                          <Button size="sm" variant="outline" onClick={() => printInvoice(i.id)}><Printer className="h-3.5 w-3.5 mr-1" /> Print</Button>
                           <Button size="sm" variant="outline" onClick={() => downloadInvoice(i.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
                         </div>
                       </div>
