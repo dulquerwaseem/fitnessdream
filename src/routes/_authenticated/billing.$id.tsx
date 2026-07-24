@@ -13,9 +13,9 @@ import { MoneyInput } from "@/components/money-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate, fmtDateTime } from "@/lib/format";
-import { downloadInvoicePdf, printInvoicePdf } from "@/lib/pdf";
+import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
 import { toast } from "sonner";
-import { ArrowLeft, Download, Plus, Printer } from "lucide-react";
+import { ArrowLeft, Download, Plus, Printer, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/billing/$id")({
   head: () => ({ meta: [{ title: "Invoice — Fitness Dream" }] }),
@@ -82,8 +82,15 @@ function InvoiceDetail() {
             <Button variant="outline" onClick={() => printInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
               <Printer className="h-4 w-4 mr-1" /> Print
             </Button>
-            <Button variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
-              <Download className="h-4 w-4 mr-1" /> PDF
+            <Button variant="outline" onClick={async () => {
+              const args = { invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) };
+              const shared = await shareInvoicePdfFile(args);
+              if (!shared) {
+                downloadInvoicePdf(args);
+                toast.message("Sharing not supported in this browser — downloaded PDF instead.");
+              }
+            }}>
+              <Send className="h-4 w-4 mr-1" /> Share Invoice
             </Button>
             {balance > 0 && (
               <Dialog open={payOpen} onOpenChange={setPayOpen}>

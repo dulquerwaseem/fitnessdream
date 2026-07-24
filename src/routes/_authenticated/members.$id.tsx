@@ -337,13 +337,30 @@ function MemberDetail() {
   };
 
   const shareInvoice = async (inv: any) => {
-    const t = toast.loading("Preparing invoice link…");
+    const t = toast.loading("Preparing invoice…");
     let invoiceLink = "";
     try {
       const [{ data: items }, { data: invPays }] = await Promise.all([
         supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
         supabase.from("payments").select("mode").eq("invoice_id", inv.id).is("deleted_at", null),
       ]);
+      const shareArgs = {
+        invoice: inv,
+        items: (items ?? []) as any,
+        member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
+        gym: gym as any,
+        paymentMethods: (invPays ?? []).map(p => p.mode as string),
+      };
+      const { shareInvoicePdfFile } = await import("@/lib/pdf");
+      const shared = await shareInvoicePdfFile(shareArgs);
+      if (shared) {
+        toast.dismiss(t);
+        supabase.from("messages_log").insert({
+          member_id: id, channel: "whatsapp", template_key: "invoice", body: `Shared invoice #${inv.number}`,
+        }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
+        return;
+      }
+      const { generateInvoicePdf } = await import("@/lib/pdf");
       const doc = generateInvoicePdf({
         gymName: gym?.name ?? "Fitness Dream",
         gymTagline: (gym as any)?.tagline ?? null,
@@ -627,9 +644,8 @@ function MemberDetail() {
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {due > 0 ? <Button size="sm" variant="outline" onClick={() => openPayForInvoice(i)}>Record payment</Button> : null}
-                          <Button size="sm" variant="outline" onClick={() => shareInvoice(i)}><Send className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                          <Button size="sm" variant="outline" onClick={() => shareInvoice(i)}><Send className="h-3.5 w-3.5 mr-1" /> Share Invoice</Button>
                           <Button size="sm" variant="outline" onClick={() => printInvoice(i.id)}><Printer className="h-3.5 w-3.5 mr-1" /> Print</Button>
-                          <Button size="sm" variant="outline" onClick={() => downloadInvoice(i.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
                         </div>
                       </div>
                     );
