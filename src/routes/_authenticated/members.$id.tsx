@@ -426,12 +426,30 @@ function MemberDetail() {
     setMsgOpen(true);
   };
   const applyTemplate = (key: string) => {
-    setMsgTemplateKey(key);
-    const tpl = templates[key] ?? "";
+    // Dynamic days-left calc; auto-switch renewal -> renewal_expired when past expiry.
+    let daysLeft = 0;
+    let hasExpiry = false;
+    if (m.expiry_date) {
+      hasExpiry = true;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const exp = new Date(m.expiry_date); exp.setHours(0, 0, 0, 0);
+      daysLeft = Math.round((exp.getTime() - today.getTime()) / 86400000);
+    }
+    let effectiveKey = key;
+    if (key === "renewal" && hasExpiry && daysLeft < 0 && templates["renewal_expired"]) {
+      effectiveKey = "renewal_expired";
+    }
+    setMsgTemplateKey(effectiveKey);
+    const tpl = templates[effectiveKey] ?? "";
+    const daysLeftLabel = daysLeft === 0 ? "today" : daysLeft === 1 ? "1 day" : daysLeft > 0 ? `${daysLeft} days` : `${Math.abs(daysLeft)} day(s) ago`;
     const body = renderTemplate(tpl, {
       name: m.full_name ?? "",
       plan: m.plan_type ?? "",
+      plan_type: m.plan_type ?? "",
       expiry: m.expiry_date ? fmtDate(m.expiry_date) : "",
+      expiry_date: m.expiry_date ? fmtDate(m.expiry_date) : "",
+      days_left: daysLeftLabel,
+      days_overdue: daysLeft < 0 ? String(Math.abs(daysLeft)) : "0",
       balance: Number(m.balance_due ?? 0).toLocaleString("en-IN"),
       currency,
       gym: gym?.name ?? "Fitness Dream",
