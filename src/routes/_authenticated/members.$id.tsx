@@ -916,7 +916,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={createInvoice}>Create</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => createInvoice()} disabled={invoiceBusy}>{invoiceBusy ? "Processing…" : "Create"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
