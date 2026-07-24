@@ -39,7 +39,7 @@ function NewInvoicePage() {
   const save = async () => {
     if (subtotal <= 0) return toast.error("Add at least one line");
     setSaving(true);
-    const status = amountPaid >= subtotal ? "paid" : amountPaid > 0 ? "partial" : "unpaid";
+    const status = amountPaid <= 0 ? "unpaid" : amountPaid >= subtotal ? "paid" : "partial";
     const { data: inv, error } = await supabase.from("invoices").insert({
       member_id: memberId || null,
       subtotal, total: subtotal, amount_paid: amountPaid, status, notes: notes || null,
