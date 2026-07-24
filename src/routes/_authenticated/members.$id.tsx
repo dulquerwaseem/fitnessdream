@@ -194,7 +194,7 @@ function MemberDetail() {
 
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
-      status: balance === 0 ? "paid" : paid > 0 ? "partial" : "unpaid",
+      status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
       notes: `Renewal: ${plan.name}`,
     }).select("id").single();
     if (inv) {
