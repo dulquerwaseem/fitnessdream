@@ -116,6 +116,7 @@ function MemberDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [payOpen, setPayOpen] = useState(false);
   const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
