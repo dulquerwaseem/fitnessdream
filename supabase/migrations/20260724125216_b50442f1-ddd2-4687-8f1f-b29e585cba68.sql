@@ -1,0 +1,1 @@
+ALTER VIEW public.members_with_status SET (security_invoker = true);
