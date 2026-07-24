@@ -195,7 +195,15 @@ function SettingsPage() {
   const doRestore = async () => {
     if (!restore) return;
     setRestoring(true);
-    const rows = restore.toAdd.map(m => ({
+    const source = forceAll
+      ? [
+          ...restore.toAdd,
+          ...restore.dupInFile.map(r => ({ full_name: r.name, phone: r.phone, phone_normalized: normalizePhone(r.phone) } as BackupMember & { phone_normalized: string })),
+        ]
+      : restore.toAdd;
+    // When forcing, also re-include rows that matched existing DB entries.
+    // We need the full member data from the original file for those, so re-parse via restore lists.
+    const rows = source.map(m => ({
       full_name: m.full_name,
       phone: m.phone,
       phone_normalized: m.phone_normalized,
@@ -219,14 +227,15 @@ function SettingsPage() {
     setImportResult({
       read: restore.totalInFile,
       inserted,
-      skippedExisting: restore.toUpdate.length,
-      skippedDupInFile: restore.dupInFile.length,
+      skippedExisting: forceAll ? 0 : restore.toUpdate.length,
+      skippedDupInFile: forceAll ? 0 : restore.dupInFile.length,
       skippedInvalid: restore.invalid.length,
       invalid: restore.invalid,
-      skippedExistingList: restore.toUpdate,
-      dupInFile: restore.dupInFile,
+      skippedExistingList: forceAll ? [] : restore.toUpdate,
+      dupInFile: forceAll ? [] : restore.dupInFile,
     });
     setRestore(null);
+    setForceAll(false);
     toast.success(`Restored ${inserted} members`);
     qc.invalidateQueries();
   };
