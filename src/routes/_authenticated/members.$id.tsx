@@ -960,7 +960,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={addPtPackage}>Add</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => addPtPackage()} disabled={ptBusy}>{ptBusy ? "Processing…" : "Add"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
