@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
+import { MoneyInput } from "@/components/money-input";
 import { normalizePhone } from "@/lib/phone";
 import { addMonthsISO, todayISO } from "@/lib/format";
 import { toast } from "sonner";
