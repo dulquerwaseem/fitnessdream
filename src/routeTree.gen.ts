@@ -16,10 +16,10 @@ import { Route as AuthenticatedStaffRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPtRouteImport } from './routes/_authenticated/pt'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
-import { Route as AuthenticatedLeadsRouteImport } from './routes/_authenticated/leads'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
+import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedMembersNewRouteImport } from './routes/_authenticated/members.new'
 import { Route as AuthenticatedMembersIdRouteImport } from './routes/_authenticated/members.$id'
 import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticated/leads.new'
@@ -61,11 +61,6 @@ const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedLeadsRoute = AuthenticatedLeadsRouteImport.update({
-  id: '/leads',
-  path: '/leads',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -81,6 +76,11 @@ const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLeadsIndexRoute = AuthenticatedLeadsIndexRouteImport.update({
+  id: '/leads/',
+  path: '/leads/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMembersNewRoute = AuthenticatedMembersNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -92,14 +92,14 @@ const AuthenticatedMembersIdRoute = AuthenticatedMembersIdRouteImport.update({
   getParentRoute: () => AuthenticatedMembersRoute,
 } as any)
 const AuthenticatedLeadsNewRoute = AuthenticatedLeadsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthenticatedLeadsRoute,
+  id: '/leads/new',
+  path: '/leads/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLeadsIdRoute = AuthenticatedLeadsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedLeadsRoute,
+  id: '/leads/$id',
+  path: '/leads/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBillingNewRoute = AuthenticatedBillingNewRouteImport.update({
   id: '/new',
@@ -118,7 +118,6 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/leads': typeof AuthenticatedLeadsRouteWithChildren
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -129,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
+  '/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,7 +136,6 @@ export interface FileRoutesByTo {
   '/attendance': typeof AuthenticatedAttendanceRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/leads': typeof AuthenticatedLeadsRouteWithChildren
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -147,6 +146,7 @@ export interface FileRoutesByTo {
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
+  '/leads': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -156,7 +156,6 @@ export interface FileRoutesById {
   '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/leads': typeof AuthenticatedLeadsRouteWithChildren
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/_authenticated/pt': typeof AuthenticatedPtRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -167,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute
   '/_authenticated/members/$id': typeof AuthenticatedMembersIdRoute
   '/_authenticated/members/new': typeof AuthenticatedMembersNewRoute
+  '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -176,7 +176,6 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/billing'
     | '/dashboard'
-    | '/leads'
     | '/members'
     | '/pt'
     | '/settings'
@@ -187,6 +186,7 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
+    | '/leads/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -194,7 +194,6 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/billing'
     | '/dashboard'
-    | '/leads'
     | '/members'
     | '/pt'
     | '/settings'
@@ -205,6 +204,7 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
+    | '/leads'
   id:
     | '__root__'
     | '/'
@@ -213,7 +213,6 @@ export interface FileRouteTypes {
     | '/_authenticated/attendance'
     | '/_authenticated/billing'
     | '/_authenticated/dashboard'
-    | '/_authenticated/leads'
     | '/_authenticated/members'
     | '/_authenticated/pt'
     | '/_authenticated/settings'
@@ -224,6 +223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/leads/new'
     | '/_authenticated/members/$id'
     | '/_authenticated/members/new'
+    | '/_authenticated/leads/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -283,13 +283,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMembersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/leads': {
-      id: '/_authenticated/leads'
-      path: '/leads'
-      fullPath: '/leads'
-      preLoaderRoute: typeof AuthenticatedLeadsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -311,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAttendanceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/leads/': {
+      id: '/_authenticated/leads/'
+      path: '/leads'
+      fullPath: '/leads/'
+      preLoaderRoute: typeof AuthenticatedLeadsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/members/new': {
       id: '/_authenticated/members/new'
       path: '/new'
@@ -327,17 +327,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/leads/new': {
       id: '/_authenticated/leads/new'
-      path: '/new'
+      path: '/leads/new'
       fullPath: '/leads/new'
       preLoaderRoute: typeof AuthenticatedLeadsNewRouteImport
-      parentRoute: typeof AuthenticatedLeadsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/leads/$id': {
       id: '/_authenticated/leads/$id'
-      path: '/$id'
+      path: '/leads/$id'
       fullPath: '/leads/$id'
       preLoaderRoute: typeof AuthenticatedLeadsIdRouteImport
-      parentRoute: typeof AuthenticatedLeadsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/billing/new': {
       id: '/_authenticated/billing/new'
@@ -369,19 +369,6 @@ const AuthenticatedBillingRouteChildren: AuthenticatedBillingRouteChildren = {
 const AuthenticatedBillingRouteWithChildren =
   AuthenticatedBillingRoute._addFileChildren(AuthenticatedBillingRouteChildren)
 
-interface AuthenticatedLeadsRouteChildren {
-  AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
-  AuthenticatedLeadsNewRoute: typeof AuthenticatedLeadsNewRoute
-}
-
-const AuthenticatedLeadsRouteChildren: AuthenticatedLeadsRouteChildren = {
-  AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
-  AuthenticatedLeadsNewRoute: AuthenticatedLeadsNewRoute,
-}
-
-const AuthenticatedLeadsRouteWithChildren =
-  AuthenticatedLeadsRoute._addFileChildren(AuthenticatedLeadsRouteChildren)
-
 interface AuthenticatedMembersRouteChildren {
   AuthenticatedMembersIdRoute: typeof AuthenticatedMembersIdRoute
   AuthenticatedMembersNewRoute: typeof AuthenticatedMembersNewRoute
@@ -399,22 +386,26 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedLeadsRoute: typeof AuthenticatedLeadsRouteWithChildren
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRouteWithChildren
   AuthenticatedPtRoute: typeof AuthenticatedPtRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
+  AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
+  AuthenticatedLeadsNewRoute: typeof AuthenticatedLeadsNewRoute
+  AuthenticatedLeadsIndexRoute: typeof AuthenticatedLeadsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedLeadsRoute: AuthenticatedLeadsRouteWithChildren,
   AuthenticatedMembersRoute: AuthenticatedMembersRouteWithChildren,
   AuthenticatedPtRoute: AuthenticatedPtRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStaffRoute: AuthenticatedStaffRoute,
+  AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
+  AuthenticatedLeadsNewRoute: AuthenticatedLeadsNewRoute,
+  AuthenticatedLeadsIndexRoute: AuthenticatedLeadsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
