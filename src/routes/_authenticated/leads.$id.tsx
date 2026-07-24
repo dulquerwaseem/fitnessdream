@@ -266,6 +266,25 @@ function LeadDetail() {
           </Card>
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this lead?"
+        description={`${lead.full_name} will be moved to Recently Deleted. You can restore them from Settings within 30 days.`}
+        confirmLabel="Delete lead"
+        askReason
+        onConfirm={async (reason) => {
+          try {
+            await softDelete({ table: "leads", id, reason, summary: `Deleted lead ${lead.full_name}` });
+            toast.success("Lead moved to Recently Deleted");
+            qc.invalidateQueries();
+            navigate({ to: "/leads" });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        }}
+      />
     </div>
   );
 }
