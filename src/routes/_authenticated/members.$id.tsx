@@ -903,6 +903,30 @@ function MemberDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this member?"
+        description={`${m?.full_name ?? "This member"} will be moved to Recently Deleted. You can restore them from Settings within 30 days.`}
+        confirmLabel="Delete member"
+        financialAmount={m && Number(m.balance_due) > 0 ? `Outstanding balance: ₹${Number(m.balance_due).toLocaleString("en-IN")}` : null}
+        typeToConfirm={m?.full_name ?? undefined}
+        askReason
+        onConfirm={async (reason) => {
+          try {
+            await softDelete({
+              table: "members", id: id, memberId: id, reason,
+              summary: `Deleted member ${m?.full_name ?? ""}`.trim(),
+            });
+            toast.success("Member moved to Recently Deleted");
+            qc.invalidateQueries();
+            navigate({ to: "/members" });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        }}
+      />
     </div>
   );
 }
