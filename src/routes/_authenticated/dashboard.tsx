@@ -123,17 +123,16 @@ function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard title="Active members" value={String(data.activeCount)} icon={Users} tone="bg-primary/10 text-primary" />
         <StatCard title="Expiring in 7d" value={String(data.expiringCount)} icon={AlertTriangle} tone="bg-warning/15 text-warning" />
         <StatCard title="Revenue (MTD)" value={fmtCurrency(data.revTotal)} icon={TrendingUp} tone="bg-success/15 text-success" />
         <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-chart-3/15 text-chart-3" />
-        <StatCard title="Attendance today" value={String(data.attendanceToday)} icon={Calendar} tone="bg-chart-2/15 text-chart-2" />
         <StatCard title="Outstanding" value={fmtCurrency(data.outstanding)} icon={Wallet} tone="bg-destructive/10 text-destructive" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3 mt-6">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-4 mt-6">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base font-display">Revenue — last 30 days</CardTitle>
@@ -155,23 +154,6 @@ function DashboardPage() {
                 <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
                 <Line type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2.5} dot={false} />
               </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-display">Attendance (14d)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[260px]">
-            <ResponsiveContainer>
-              <BarChart data={data.attSeries}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="date" fontSize={11} stroke="var(--color-muted-foreground)" />
-                <YAxis fontSize={11} stroke="var(--color-muted-foreground)" />
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
-                <Bar dataKey="value" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
