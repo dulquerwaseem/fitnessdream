@@ -23,6 +23,7 @@ import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { MoneyInput } from "@/components/money-input";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
