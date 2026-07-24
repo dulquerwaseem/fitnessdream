@@ -27,7 +27,7 @@ import { MoneyInput } from "@/components/money-input";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity, Trash2,
+  Pencil, Plus, FileText, Download, Printer, Send, MessageCircle, Activity, Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
