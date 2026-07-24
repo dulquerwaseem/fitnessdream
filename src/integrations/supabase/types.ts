@@ -22,6 +22,7 @@ export type Database = {
           currency_symbol: string
           email: string | null
           id: number
+          invoice_terms: string
           logo_url: string | null
           name: string
           phone: string | null
@@ -37,6 +38,7 @@ export type Database = {
           currency_symbol?: string
           email?: string | null
           id?: number
+          invoice_terms?: string
           logo_url?: string | null
           name?: string
           phone?: string | null
@@ -52,6 +54,7 @@ export type Database = {
           currency_symbol?: string
           email?: string | null
           id?: number
+          invoice_terms?: string
           logo_url?: string | null
           name?: string
           phone?: string | null
