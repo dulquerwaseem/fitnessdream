@@ -305,7 +305,7 @@ function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="member-templates">
-          <MemberTemplatesEditor gym={gym} onSaved={() => qc.invalidateQueries({ queryKey: ["gym-settings"] })} />
+          <MemberTemplatesEditor gym={gym as unknown as { id?: number; templates?: Record<string, string> } | null | undefined} onSaved={() => qc.invalidateQueries({ queryKey: ["gym-settings"] })} />
         </TabsContent>
 
         <TabsContent value="stages">
