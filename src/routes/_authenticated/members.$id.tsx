@@ -21,10 +21,12 @@ import {
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
+import { softDelete } from "@/lib/soft-delete";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
+  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity, Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
