@@ -72,10 +72,6 @@ function MemberDetail() {
     queryKey: ["member-payments", id],
     queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).order("paid_at", { ascending: false })).data ?? [],
   });
-  const { data: att } = useQuery({
-    queryKey: ["member-att", id],
-    queryFn: async () => (await supabase.from("attendance").select("*").eq("subject_id", id).eq("subject_type", "member").order("check_in", { ascending: false }).limit(200)).data ?? [],
-  });
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
     queryFn: async () => (await supabase.from("plans").select("*").eq("active", true).order("duration_months")).data ?? [],
