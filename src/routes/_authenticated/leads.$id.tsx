@@ -133,10 +133,19 @@ function LeadDetail() {
                 <DialogHeader><DialogTitle>Send WhatsApp to {lead.full_name}</DialogTitle></DialogHeader>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Template</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Template (matching {sourceLabels[lead.source]})</Label>
+                      <button type="button" className="text-[11px] text-primary hover:underline" onClick={() => setShowAllTpls(v => !v)}>
+                        {showAllTpls ? "Filter to source" : "Show all templates"}
+                      </button>
+                    </div>
                     <Select value={tplId} onValueChange={pickTemplate}>
                       <SelectTrigger><SelectValue placeholder="Pick a template (optional)" /></SelectTrigger>
-                      <SelectContent>{templates?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>{(templates ?? []).filter(t => {
+                        if (showAllTpls) return true;
+                        const cats = (t as { source_categories?: string[] }).source_categories ?? ["all"];
+                        return cats.includes("all") || cats.includes(lead.source);
+                      }).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
