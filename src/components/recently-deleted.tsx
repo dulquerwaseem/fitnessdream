@@ -102,7 +102,8 @@ export function RecentlyDeleted() {
               <div className="text-sm text-muted-foreground py-6 text-center">Nothing here. Deleted items appear here for 30 days.</div>
             ) : (
               <div className="space-y-2">
-                {(data ?? []).map((row) => {
+                {(data ?? []).map((raw) => {
+                  const row = raw as unknown as Record<string, unknown>;
                   const desc = describe(row);
                   const deletedAt = row.deleted_at as string | null;
                   const daysLeft = deletedAt ? Math.max(0, 30 - Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000)) : 30;
