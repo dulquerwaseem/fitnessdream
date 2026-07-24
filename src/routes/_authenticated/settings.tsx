@@ -115,8 +115,25 @@ function SettingsPage() {
   };
 
   // Restore preview
-  const [restore, setRestore] = useState<{ members: BackupMember[]; preview: { toAdd: BackupMember[]; toSkip: BackupMember[]; toUpdate: BackupMember[] } } | null>(null);
+  type FlaggedRow = { name: string; phone: string; reason: string };
+  const [restore, setRestore] = useState<{
+    totalInFile: number;
+    toAdd: (BackupMember & { phone_normalized: string })[];
+    toUpdate: FlaggedRow[];
+    dupInFile: FlaggedRow[];
+    invalid: FlaggedRow[];
+  } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    read: number;
+    inserted: number;
+    skippedExisting: number;
+    skippedDupInFile: number;
+    skippedInvalid: number;
+    invalid: FlaggedRow[];
+    skippedExistingList: FlaggedRow[];
+    dupInFile: FlaggedRow[];
+  } | null>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,23 +144,46 @@ function SettingsPage() {
       const members: BackupMember[] = data.members ?? [];
       if (!Array.isArray(members)) throw new Error("Invalid backup: members array missing");
 
-      // Dedupe by normalized phone
-      const norm = members.map(m => ({ ...m, phone_normalized: normalizePhone(m.phone) })).filter(m => m.phone_normalized);
-      const phones = norm.map(m => m.phone_normalized);
-      const { data: existing } = await supabase.from("members").select("phone_normalized").in("phone_normalized", phones);
+      const totalInFile = members.length;
+      const invalid: FlaggedRow[] = [];
+      const valid: (BackupMember & { phone_normalized: string })[] = [];
+      for (const m of members) {
+        const phone_normalized = normalizePhone(m.phone);
+        if (!m.full_name || !phone_normalized) {
+          invalid.push({
+            name: m.full_name || "(no name)",
+            phone: m.phone || "(no phone)",
+            reason: !m.full_name ? "missing name" : "missing/invalid phone",
+          });
+          continue;
+        }
+        valid.push({ ...m, phone_normalized });
+      }
+
+      const phones = valid.map(m => m.phone_normalized);
+      const { data: existing } = phones.length
+        ? await supabase.from("members").select("phone_normalized").in("phone_normalized", phones)
+        : { data: [] as { phone_normalized: string }[] };
       const existingSet = new Set((existing ?? []).map(x => x.phone_normalized));
 
       const seen = new Set<string>();
-      const toAdd: BackupMember[] = [];
-      const toSkip: BackupMember[] = [];
-      const toUpdate: BackupMember[] = [];
-      for (const m of norm) {
-        if (seen.has(m.phone_normalized)) { toSkip.push(m); continue; }
+      const toAdd: (BackupMember & { phone_normalized: string })[] = [];
+      const toUpdate: FlaggedRow[] = [];
+      const dupInFile: FlaggedRow[] = [];
+      for (const m of valid) {
+        if (seen.has(m.phone_normalized)) {
+          dupInFile.push({ name: m.full_name, phone: m.phone, reason: "duplicate phone in file" });
+          continue;
+        }
         seen.add(m.phone_normalized);
-        if (existingSet.has(m.phone_normalized)) toUpdate.push(m);
-        else toAdd.push(m);
+        if (existingSet.has(m.phone_normalized)) {
+          toUpdate.push({ name: m.full_name, phone: m.phone, reason: "already exists in database" });
+        } else {
+          toAdd.push(m);
+        }
       }
-      setRestore({ members: norm, preview: { toAdd, toSkip, toUpdate } });
+      setImportResult(null);
+      setRestore({ totalInFile, toAdd, toUpdate, dupInFile, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -154,10 +194,10 @@ function SettingsPage() {
   const doRestore = async () => {
     if (!restore) return;
     setRestoring(true);
-    const rows = restore.preview.toAdd.map(m => ({
+    const rows = restore.toAdd.map(m => ({
       full_name: m.full_name,
       phone: m.phone,
-      phone_normalized: normalizePhone(m.phone),
+      phone_normalized: m.phone_normalized,
       email: m.email || null,
       address: m.address || null,
       plan_type: m.plan_type || null,
@@ -168,13 +208,25 @@ function SettingsPage() {
       expiry_date: m.expiry_date || new Date().toISOString().slice(0,10),
       notes: m.notes || null,
     }));
+    let inserted = 0;
     if (rows.length) {
-      const { error } = await supabase.from("members").insert(rows);
+      const { error, count } = await supabase.from("members").insert(rows, { count: "exact" });
       if (error) { setRestoring(false); return toast.error(error.message); }
+      inserted = count ?? rows.length;
     }
     setRestoring(false);
+    setImportResult({
+      read: restore.totalInFile,
+      inserted,
+      skippedExisting: restore.toUpdate.length,
+      skippedDupInFile: restore.dupInFile.length,
+      skippedInvalid: restore.invalid.length,
+      invalid: restore.invalid,
+      skippedExistingList: restore.toUpdate,
+      dupInFile: restore.dupInFile,
+    });
     setRestore(null);
-    toast.success(`Restored ${rows.length} members`);
+    toast.success(`Restored ${inserted} members`);
     qc.invalidateQueries();
   };
 
@@ -282,17 +334,106 @@ function SettingsPage() {
           {restore && (
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Restore preview</AlertTitle>
-              <AlertDescription className="space-y-2">
+              <AlertTitle>Restore preview — {restore.totalInFile} records read</AlertTitle>
+              <AlertDescription className="space-y-3">
                 <div className="text-sm">
-                  <strong>{restore.preview.toAdd.length}</strong> new · <strong>{restore.preview.toUpdate.length}</strong> already exist (will skip to protect current data) · <strong>{restore.preview.toSkip.length}</strong> duplicate phones in file
+                  <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
+                  <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
+                  <strong>{restore.dupInFile.length}</strong> duplicate phones in file ·{" "}
+                  <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
+
+                {restore.invalid.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium text-destructive">
+                      Missing required fields ({restore.invalid.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.dupInFile.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Duplicate phones in file ({restore.dupInFile.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.dupInFile.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.toUpdate.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Already exist in database ({restore.toUpdate.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.toUpdate.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" onClick={doRestore} disabled={restoring} className="gradient-primary text-primary-foreground">
-                    {restoring ? "Restoring…" : `Restore ${restore.preview.toAdd.length} members`}
+                    {restoring ? "Restoring…" : `Restore ${restore.toAdd.length} members`}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setRestore(null)}>Cancel</Button>
                 </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {importResult && (
+            <Alert className="mt-4">
+              <AlertTitle>Import audit log</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <div className="text-sm grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div><div className="text-xs text-muted-foreground">Read from file</div><div className="font-semibold">{importResult.read}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Inserted</div><div className="font-semibold text-success">{importResult.inserted}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Skipped (exists)</div><div className="font-semibold">{importResult.skippedExisting}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Dup in file</div><div className="font-semibold">{importResult.skippedDupInFile}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Invalid</div><div className="font-semibold text-destructive">{importResult.skippedInvalid}</div></div>
+                </div>
+                {importResult.invalid.length > 0 && (
+                  <details className="text-xs" open>
+                    <summary className="cursor-pointer font-medium text-destructive">
+                      Skipped — missing required fields ({importResult.invalid.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {importResult.dupInFile.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Skipped — duplicate phone in file ({importResult.dupInFile.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.dupInFile.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
+                    </ul>
+                  </details>
+                )}
+                {importResult.skippedExistingList.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Skipped — already exists in database ({importResult.skippedExistingList.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.skippedExistingList.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
+                    </ul>
+                  </details>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setImportResult(null)}>Dismiss</Button>
               </AlertDescription>
             </Alert>
           )}
