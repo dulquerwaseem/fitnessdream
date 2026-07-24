@@ -51,7 +51,7 @@ function PTPage() {
     queryFn: async () => (await supabase.from("pt_packages").select("*").eq("active", true)).data ?? [],
   });
 
-  const create = async () => {
+  const _create = async () => {
     if (!form.member_id || !form.trainer_id || !form.package_id) return toast.error("Select member, trainer, and package");
     const pkg = packages?.find((p) => p.id === form.package_id);
     if (!pkg) return;
