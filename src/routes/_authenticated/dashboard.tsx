@@ -64,31 +64,14 @@ function useDashboard() {
       });
       const revSeries = Object.entries(days).map(([date, value]) => ({ date: date.slice(5), value }));
 
-      // Attendance last 14d
-      const attStart = new Date(); attStart.setDate(attStart.getDate() - 13);
-      const attRes = await supabase.from("attendance").select("check_in").eq("subject_type", "member").gte("check_in", attStart.toISOString());
-      const attDays: Record<string, number> = {};
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        attDays[d.toISOString().slice(0, 10)] = 0;
-      }
-      (attRes.data ?? []).forEach((a) => {
-        const k = String(a.check_in).slice(0, 10);
-        if (k in attDays) attDays[k] += 1;
-      });
-      const attSeries = Object.entries(attDays).map(([date, value]) => ({ date: date.slice(5), value }));
-
       return {
         activeCount: members.count ?? 0,
         expiringCount: (expiring.data ?? []).length,
         expiringList: (expiring.data ?? []).slice(0, 5),
         revTotal,
         newJoins: joins.count ?? 0,
-        attendanceToday: attendance.count ?? 0,
         outstanding,
         revSeries,
-        attSeries,
         in7,
       };
     },
