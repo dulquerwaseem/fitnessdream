@@ -512,7 +512,7 @@ function MemberDetail() {
               </Button>
               <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
               <Button size="sm" variant="outline" onClick={openMsg}><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
-              <Button size="sm" variant="outline" onClick={quickCheckIn}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Check-in</Button>
+              
             </div>
           </div>
         </CardContent>
