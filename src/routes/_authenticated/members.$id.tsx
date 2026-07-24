@@ -852,7 +852,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={handleRenew}>Renew</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => handleRenew()} disabled={renewBusy}>{renewBusy ? "Processing…" : "Renew"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
