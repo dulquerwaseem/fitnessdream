@@ -780,7 +780,7 @@ function MemberDetail() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={renewPaid} onChange={e => setRenewPaid(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={renewPaid} onChange={setRenewPaid} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
