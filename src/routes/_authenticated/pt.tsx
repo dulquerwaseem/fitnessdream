@@ -32,17 +32,17 @@ function PTPage() {
 
   const { data: enrollments, isLoading } = useQuery({
     queryKey: ["pt-enrollments"],
-    queryFn: async () => (await supabase.from("pt_enrollments")
+    queryFn: async () => (await supabase.from("pt_enrollments").is("deleted_at", null)
       .select("*, member:members!pt_enrollments_member_id_fkey(full_name, phone), trainer:staff!pt_enrollments_trainer_id_fkey(full_name), package:pt_packages!pt_enrollments_package_id_fkey(name, price)")
       .order("created_at", { ascending: false })).data ?? [],
   });
   const { data: members } = useQuery({
     queryKey: ["members-brief"],
-    queryFn: async () => (await supabase.from("members").select("id, full_name, phone").order("full_name")).data ?? [],
+    queryFn: async () => (await supabase.from("members").select("id, full_name, phone").is("deleted_at", null).order("full_name")).data ?? [],
   });
   const { data: trainers } = useQuery({
     queryKey: ["trainers-active"],
-    queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true).eq("role_label", "trainer")).data ?? [],
+    queryFn: async () => (await supabase.from("staff").select("id, full_name").is("deleted_at", null).eq("active", true).eq("role_label", "trainer")).data ?? [],
   });
   const { data: packages } = useQuery({
     queryKey: ["pt-packages"],

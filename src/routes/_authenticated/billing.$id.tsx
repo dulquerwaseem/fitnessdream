@@ -35,7 +35,7 @@ function InvoiceDetail() {
   });
   const { data: pays } = useQuery({
     queryKey: ["invoice-payments", id],
-    queryFn: async () => (await supabase.from("payments").select("*").eq("invoice_id", id).order("paid_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("payments").select("*").eq("invoice_id", id).is("deleted_at", null).order("paid_at", { ascending: false })).data ?? [],
   });
   const { data: gym } = useQuery({
     queryKey: ["gym-settings"],

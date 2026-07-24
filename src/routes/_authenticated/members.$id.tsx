@@ -66,11 +66,11 @@ function MemberDetail() {
   });
   const { data: invoices } = useQuery({
     queryKey: ["member-invoices", id],
-    queryFn: async () => (await supabase.from("invoices").select("*").eq("member_id", id).order("issued_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("invoices").select("*").eq("member_id", id).is("deleted_at", null).order("issued_at", { ascending: false })).data ?? [],
   });
   const { data: payments } = useQuery({
     queryKey: ["member-payments", id],
-    queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).order("paid_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).is("deleted_at", null).order("paid_at", { ascending: false })).data ?? [],
   });
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
@@ -78,7 +78,7 @@ function MemberDetail() {
   });
   const { data: trainers } = useQuery({
     queryKey: ["trainers"],
-    queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("staff").select("id, full_name").is("deleted_at", null).eq("active", true)).data ?? [],
   });
   const { data: ptPackages } = useQuery({
     queryKey: ["pt-packages-active"],
@@ -86,15 +86,15 @@ function MemberDetail() {
   });
   const { data: ptEnrollments } = useQuery({
     queryKey: ["member-pt", id],
-    queryFn: async () => (await supabase.from("pt_enrollments").select("*").eq("member_id", id).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("pt_enrollments").select("*").eq("member_id", id).is("deleted_at", null).order("created_at", { ascending: false })).data ?? [],
   });
   const { data: ptSessions } = useQuery({
     queryKey: ["member-pt-sessions", id],
     queryFn: async () => {
-      const { data: enrolls } = await supabase.from("pt_enrollments").select("id").eq("member_id", id);
+      const { data: enrolls } = await supabase.from("pt_enrollments").select("id").eq("member_id", id).is("deleted_at", null);
       const ids = (enrolls ?? []).map(e => e.id);
       if (!ids.length) return [];
-      return (await supabase.from("pt_sessions").select("*").in("enrollment_id", ids).order("scheduled_at", { ascending: false })).data ?? [];
+      return (await supabase.from("pt_sessions").select("*").in("enrollment_id", ids).is("deleted_at", null).order("scheduled_at", { ascending: false })).data ?? [];
     },
   });
   const { data: messages } = useQuery({

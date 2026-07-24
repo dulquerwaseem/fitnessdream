@@ -33,7 +33,7 @@ function StaffPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["staff-list"],
-    queryFn: async () => (await supabase.from("staff").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("staff").select("*").is("deleted_at", null).order("created_at", { ascending: false })).data ?? [],
   });
 
   const add = async () => {
