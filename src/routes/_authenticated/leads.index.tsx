@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { fmtDate, fmtDateTime, initials } from "@/lib/format";
-import { renderTemplate, waLink } from "@/lib/phone";
+import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { Plus, Search, Sparkles, MessageCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -170,7 +170,7 @@ function LeadsPage() {
     const chosen = (leads ?? []).filter(l => selected.has(l.id));
     for (const lead of chosen) {
       const body = renderTemplate(tpl.body, { name: lead.full_name.split(" ")[0], offer: "" });
-      window.open(waLink(lead.phone, body), "_blank", "noopener,noreferrer");
+      openWhatsApp(lead.phone, body);
       await supabase.from("lead_activities").insert({
         lead_id: lead.id,
         kind: "whatsapp",

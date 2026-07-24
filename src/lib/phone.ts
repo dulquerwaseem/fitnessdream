@@ -26,6 +26,13 @@ export function waLink(phone: string, message: string, countryCode: string = "91
   return `https://wa.me/${full}?text=${encodeURIComponent(message)}`;
 }
 
+/** Open WhatsApp click-to-chat using only the current wa.me format. */
+export function openWhatsApp(phone: string, message: string, countryCode: string = "91"): string {
+  const url = waLink(phone, message, countryCode);
+  window.open(url, "_blank", "noopener,noreferrer");
+  return url;
+}
+
 /** Substitute {{tokens}} in a template string. */
 export function renderTemplate(tpl: string, vars: Record<string, string | number>): string {
   return tpl.replace(/\{\{\s*([\w]+)\s*\}\}/g, (_, k) =>

@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { fmtDate, fmtDateTime } from "@/lib/format";
-import { renderTemplate, waLink } from "@/lib/phone";
+import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { toast } from "sonner";
 import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight } from "lucide-react";
 
@@ -94,7 +94,7 @@ function LeadDetail() {
   const sendWhatsApp = async () => {
     if (!waMsg.trim()) return;
     const tpl = templates?.find(x => x.id === tplId);
-    window.open(waLink(lead.phone, waMsg), "_blank", "noopener,noreferrer");
+    openWhatsApp(lead.phone, waMsg);
     await supabase.from("lead_activities").insert({
       lead_id: id,
       kind: "whatsapp",
