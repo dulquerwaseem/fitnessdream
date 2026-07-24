@@ -322,16 +322,52 @@ function MemberDetail() {
     });
   };
 
-  const shareInvoice = (inv: any) => {
-    const tpl = templates.invoice ?? "Hi {{name}}, your invoice #{{invoice_number}} for {{currency}}{{amount}} at {{gym}} is ready.";
-    const msg = renderTemplate(tpl, {
+  const shareInvoice = async (inv: any) => {
+    const t = toast.loading("Preparing invoice link…");
+    let invoiceLink = "";
+    try {
+      const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
+      const doc = generateInvoicePdf({
+        gymName: gym?.name ?? "Fitness Dream",
+        gymAddress: gym?.address ?? null,
+        gymPhone: gym?.phone ?? null,
+        currencySymbol: gym?.currency_symbol ?? "₹",
+        number: inv.number,
+        issuedAt: inv.issued_at,
+        memberName: m.full_name ?? "Walk-in",
+        memberPhone: m.phone ?? null,
+        items: (items ?? []) as any,
+        subtotal: Number(inv.subtotal),
+        total: Number(inv.total),
+        amountPaid: Number(inv.amount_paid),
+        notes: inv.notes,
+      });
+      const blob = doc.output("blob");
+      const path = `${id}/invoice-${inv.number}.pdf`;
+      const up = await supabase.storage.from("invoices").upload(path, blob, {
+        contentType: "application/pdf", upsert: true,
+      });
+      if (up.error) throw up.error;
+      const signed = await supabase.storage.from("invoices").createSignedUrl(path, 60 * 60 * 24 * 60);
+      if (signed.error) throw signed.error;
+      invoiceLink = signed.data.signedUrl;
+    } catch (e: any) {
+      toast.dismiss(t);
+      toast.error("Could not create invoice link: " + (e?.message ?? "unknown"));
+      return;
+    }
+    toast.dismiss(t);
+    const tpl = templates.invoice ?? "Hi {{name}}, your invoice #{{invoice_number}} for {{currency}}{{amount}} at {{gym}} is ready.\n\nView / download: {{invoice_link}}";
+    const withLink = tpl.includes("{{invoice_link}}") ? tpl : `${tpl}\n\nView / download: {{invoice_link}}`;
+    const msg = renderTemplate(withLink, {
       name: m.full_name ?? "",
       invoice_number: inv.number,
       currency,
       amount: Number(inv.total).toLocaleString("en-IN"),
       gym: gym?.name ?? "Fitness Dream",
+      invoice_link: invoiceLink,
     });
-    window.open(waLink(m.phone ?? "", msg, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener");
+    window.open(waLink(m.phone ?? "", msg, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener,noreferrer");
     supabase.from("messages_log").insert({
       member_id: id, channel: "whatsapp", template_key: "invoice", body: msg,
     }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
