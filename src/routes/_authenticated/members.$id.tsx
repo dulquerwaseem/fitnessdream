@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
-import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
+import { downloadInvoicePdf, generateInvoicePdf, printInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { MoneyInput } from "@/components/money-input";
