@@ -628,6 +628,7 @@ function MemberDetail() {
                         <div className="flex flex-wrap gap-2">
                           {due > 0 ? <Button size="sm" variant="outline" onClick={() => openPayForInvoice(i)}>Record payment</Button> : null}
                           <Button size="sm" variant="outline" onClick={() => shareInvoice(i)}><Send className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                          <Button size="sm" variant="outline" onClick={() => printInvoice(i.id)}><Printer className="h-3.5 w-3.5 mr-1" /> Print</Button>
                           <Button size="sm" variant="outline" onClick={() => downloadInvoice(i.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
                         </div>
                       </div>
