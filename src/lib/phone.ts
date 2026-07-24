@@ -16,10 +16,13 @@ export function displayPhone(raw: string | null | undefined, countryCode = "91")
   return `+${countryCode} ${n.slice(0, 5)} ${n.slice(5)}`;
 }
 
-/** wa.me deep link URL with pre-filled encoded message. */
-export function waLink(phone: string, message: string, countryCode = "91"): string {
+/** wa.me deep link URL with pre-filled encoded message.
+ * Phone format: international digits only, no '+' or spaces (e.g. 919036524262).
+ */
+export function waLink(phone: string, message: string, countryCode: string = "91"): string {
   const n = normalizePhone(phone);
-  const full = n.length === 10 ? `${countryCode}${n}` : n;
+  const cc = String(countryCode).replace(/\D/g, "") || "91";
+  const full = n.length === 10 ? `${cc}${n}` : n;
   return `https://wa.me/${full}?text=${encodeURIComponent(message)}`;
 }
 
