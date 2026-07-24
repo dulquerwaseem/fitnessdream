@@ -383,7 +383,7 @@ function MemberDetail() {
     const paid = Number(ptPaid);
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
-      status: paid >= total ? "paid" : paid > 0 ? "partial" : "unpaid",
+      status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
       notes: `PT: ${pkg.name}`,
     }).select("id").single();
     if (inv) {
