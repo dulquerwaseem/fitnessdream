@@ -115,8 +115,25 @@ function SettingsPage() {
   };
 
   // Restore preview
-  const [restore, setRestore] = useState<{ members: BackupMember[]; preview: { toAdd: BackupMember[]; toSkip: BackupMember[]; toUpdate: BackupMember[] } } | null>(null);
+  type FlaggedRow = { name: string; phone: string; reason: string };
+  const [restore, setRestore] = useState<{
+    totalInFile: number;
+    toAdd: (BackupMember & { phone_normalized: string })[];
+    toUpdate: FlaggedRow[];
+    dupInFile: FlaggedRow[];
+    invalid: FlaggedRow[];
+  } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    read: number;
+    inserted: number;
+    skippedExisting: number;
+    skippedDupInFile: number;
+    skippedInvalid: number;
+    invalid: FlaggedRow[];
+    skippedExistingList: FlaggedRow[];
+    dupInFile: FlaggedRow[];
+  } | null>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,23 +144,46 @@ function SettingsPage() {
       const members: BackupMember[] = data.members ?? [];
       if (!Array.isArray(members)) throw new Error("Invalid backup: members array missing");
 
-      // Dedupe by normalized phone
-      const norm = members.map(m => ({ ...m, phone_normalized: normalizePhone(m.phone) })).filter(m => m.phone_normalized);
-      const phones = norm.map(m => m.phone_normalized);
-      const { data: existing } = await supabase.from("members").select("phone_normalized").in("phone_normalized", phones);
+      const totalInFile = members.length;
+      const invalid: FlaggedRow[] = [];
+      const valid: (BackupMember & { phone_normalized: string })[] = [];
+      for (const m of members) {
+        const phone_normalized = normalizePhone(m.phone);
+        if (!m.full_name || !phone_normalized) {
+          invalid.push({
+            name: m.full_name || "(no name)",
+            phone: m.phone || "(no phone)",
+            reason: !m.full_name ? "missing name" : "missing/invalid phone",
+          });
+          continue;
+        }
+        valid.push({ ...m, phone_normalized });
+      }
+
+      const phones = valid.map(m => m.phone_normalized);
+      const { data: existing } = phones.length
+        ? await supabase.from("members").select("phone_normalized").in("phone_normalized", phones)
+        : { data: [] as { phone_normalized: string }[] };
       const existingSet = new Set((existing ?? []).map(x => x.phone_normalized));
 
       const seen = new Set<string>();
-      const toAdd: BackupMember[] = [];
-      const toSkip: BackupMember[] = [];
-      const toUpdate: BackupMember[] = [];
-      for (const m of norm) {
-        if (seen.has(m.phone_normalized)) { toSkip.push(m); continue; }
+      const toAdd: (BackupMember & { phone_normalized: string })[] = [];
+      const toUpdate: FlaggedRow[] = [];
+      const dupInFile: FlaggedRow[] = [];
+      for (const m of valid) {
+        if (seen.has(m.phone_normalized)) {
+          dupInFile.push({ name: m.full_name, phone: m.phone, reason: "duplicate phone in file" });
+          continue;
+        }
         seen.add(m.phone_normalized);
-        if (existingSet.has(m.phone_normalized)) toUpdate.push(m);
-        else toAdd.push(m);
+        if (existingSet.has(m.phone_normalized)) {
+          toUpdate.push({ name: m.full_name, phone: m.phone, reason: "already exists in database" });
+        } else {
+          toAdd.push(m);
+        }
       }
-      setRestore({ members: norm, preview: { toAdd, toSkip, toUpdate } });
+      setImportResult(null);
+      setRestore({ totalInFile, toAdd, toUpdate, dupInFile, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -154,10 +194,10 @@ function SettingsPage() {
   const doRestore = async () => {
     if (!restore) return;
     setRestoring(true);
-    const rows = restore.preview.toAdd.map(m => ({
+    const rows = restore.toAdd.map(m => ({
       full_name: m.full_name,
       phone: m.phone,
-      phone_normalized: normalizePhone(m.phone),
+      phone_normalized: m.phone_normalized,
       email: m.email || null,
       address: m.address || null,
       plan_type: m.plan_type || null,
@@ -168,13 +208,25 @@ function SettingsPage() {
       expiry_date: m.expiry_date || new Date().toISOString().slice(0,10),
       notes: m.notes || null,
     }));
+    let inserted = 0;
     if (rows.length) {
-      const { error } = await supabase.from("members").insert(rows);
+      const { error, count } = await supabase.from("members").insert(rows, { count: "exact" });
       if (error) { setRestoring(false); return toast.error(error.message); }
+      inserted = count ?? rows.length;
     }
     setRestoring(false);
+    setImportResult({
+      read: restore.totalInFile,
+      inserted,
+      skippedExisting: restore.toUpdate.length,
+      skippedDupInFile: restore.dupInFile.length,
+      skippedInvalid: restore.invalid.length,
+      invalid: restore.invalid,
+      skippedExistingList: restore.toUpdate,
+      dupInFile: restore.dupInFile,
+    });
     setRestore(null);
-    toast.success(`Restored ${rows.length} members`);
+    toast.success(`Restored ${inserted} members`);
     qc.invalidateQueries();
   };
 
