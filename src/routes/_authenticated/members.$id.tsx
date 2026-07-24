@@ -24,7 +24,7 @@ import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  CheckCircle2, Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
+  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
@@ -71,10 +71,6 @@ function MemberDetail() {
   const { data: payments } = useQuery({
     queryKey: ["member-payments", id],
     queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).order("paid_at", { ascending: false })).data ?? [],
-  });
-  const { data: att } = useQuery({
-    queryKey: ["member-att", id],
-    queryFn: async () => (await supabase.from("attendance").select("*").eq("subject_id", id).eq("subject_type", "member").order("check_in", { ascending: false }).limit(200)).data ?? [],
   });
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
@@ -160,12 +156,7 @@ function MemberDetail() {
   if (!m) return <div className="text-center py-16 text-muted-foreground">Member not found. <Link to="/members" className="text-primary story-link">Back to list</Link></div>;
 
   const balanceDue = Number(m.balance_due ?? 0);
-  const visitsThisMonth = (att ?? []).filter(a => {
-    const d = new Date(a.check_in);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-  const lastVisit = att?.[0]?.check_in;
+
 
   const freezeToggle = async () => {
     const isFrozen = !!m.frozen_at;
@@ -175,12 +166,6 @@ function MemberDetail() {
     qc.invalidateQueries({ queryKey: ["member", id] });
   };
 
-  const quickCheckIn = async () => {
-    const { error } = await supabase.from("attendance").insert({ subject_id: id, subject_type: "member" });
-    if (error) return toast.error(error.message);
-    toast.success("Checked in");
-    qc.invalidateQueries({ queryKey: ["member-att", id] });
-  };
 
   const handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
@@ -521,7 +506,7 @@ function MemberDetail() {
               </Button>
               <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
               <Button size="sm" variant="outline" onClick={openMsg}><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
-              <Button size="sm" variant="outline" onClick={quickCheckIn}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Check-in</Button>
+              
             </div>
           </div>
         </CardContent>
@@ -532,7 +517,7 @@ function MemberDetail() {
           <TabsTrigger value="membership">Membership</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="pt">Personal Training</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="notes">Notes & Activity</TabsTrigger>
         </TabsList>
@@ -694,31 +679,8 @@ function MemberDetail() {
           </Card>
         </TabsContent>
 
-        {/* ATTENDANCE */}
-        <TabsContent value="attendance" className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <Stat label="Visits this month" value={String(visitsThisMonth)} />
-            <Stat label="Last visit" value={lastVisit ? fmtDateTime(lastVisit) : "—"} />
-            <Stat label="Total recorded" value={String(att?.length ?? 0)} />
-          </div>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Check-in history</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {(att?.length ?? 0) === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">No check-ins recorded.</div>
-              ) : (
-                <div className="divide-y max-h-[500px] overflow-auto">
-                  {att!.map(a => (
-                    <div key={a.id} className="flex items-center justify-between p-4">
-                      <div className="text-sm">{fmtDateTime(a.check_in)}</div>
-                      {a.check_out ? <Badge variant="outline">Out {fmtDateTime(a.check_out)}</Badge> : <Badge className="bg-success/15 text-success border-success/30" variant="outline">In</Badge>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+
+
 
         {/* MESSAGES */}
         <TabsContent value="messages" className="space-y-4">

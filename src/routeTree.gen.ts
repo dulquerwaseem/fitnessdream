@@ -17,7 +17,6 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPtRouteImport } from './routes/_authenticated/pt'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
-import { Route as AuthenticatedAttendanceRouteImport } from './routes/_authenticated/attendance'
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedLeadsIndexRouteImport } from './routes/_authenticated/leads.index'
 import { Route as AuthenticatedMembersNewRouteImport } from './routes/_authenticated/members.new'
@@ -66,11 +65,6 @@ const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAttendanceRoute = AuthenticatedAttendanceRouteImport.update({
-  id: '/attendance',
-  path: '/attendance',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedMembersIndexRoute =
   AuthenticatedMembersIndexRouteImport.update({
     id: '/members/',
@@ -116,7 +110,6 @@ const AuthenticatedBillingIdRoute = AuthenticatedBillingIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/attendance': typeof AuthenticatedAttendanceRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
@@ -134,7 +127,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/attendance': typeof AuthenticatedAttendanceRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
@@ -154,7 +146,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/attendance': typeof AuthenticatedAttendanceRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pt': typeof AuthenticatedPtRoute
@@ -174,7 +165,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/attendance'
     | '/billing'
     | '/dashboard'
     | '/pt'
@@ -192,7 +182,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/attendance'
     | '/billing'
     | '/dashboard'
     | '/pt'
@@ -211,7 +200,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/_authenticated/attendance'
     | '/_authenticated/billing'
     | '/_authenticated/dashboard'
     | '/_authenticated/pt'
@@ -291,13 +279,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBillingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/attendance': {
-      id: '/_authenticated/attendance'
-      path: '/attendance'
-      fullPath: '/attendance'
-      preLoaderRoute: typeof AuthenticatedAttendanceRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/members/': {
       id: '/_authenticated/members/'
       path: '/members'
@@ -371,7 +352,6 @@ const AuthenticatedBillingRouteWithChildren =
   AuthenticatedBillingRoute._addFileChildren(AuthenticatedBillingRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAttendanceRoute: typeof AuthenticatedAttendanceRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPtRoute: typeof AuthenticatedPtRoute
@@ -386,7 +366,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAttendanceRoute: AuthenticatedAttendanceRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPtRoute: AuthenticatedPtRoute,

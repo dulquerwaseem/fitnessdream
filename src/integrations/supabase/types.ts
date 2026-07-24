@@ -14,36 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      attendance: {
-        Row: {
-          check_in: string
-          check_out: string | null
-          created_at: string
-          id: string
-          note: string | null
-          subject_id: string
-          subject_type: string
-        }
-        Insert: {
-          check_in?: string
-          check_out?: string | null
-          created_at?: string
-          id?: string
-          note?: string | null
-          subject_id: string
-          subject_type: string
-        }
-        Update: {
-          check_in?: string
-          check_out?: string | null
-          created_at?: string
-          id?: string
-          note?: string | null
-          subject_id?: string
-          subject_type?: string
-        }
-        Relationships: []
-      }
       gym_settings: {
         Row: {
           address: string | null
