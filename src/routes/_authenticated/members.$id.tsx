@@ -415,9 +415,12 @@ function MemberDetail() {
     }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
   };
 
-  const addPtPackage = async () => {
+  const _addPtPackage = async () => {
     const pkg = ptPackages?.find(p => p.id === ptPkg);
     if (!pkg) return toast.error("Select a package");
+    const total = Number(ptTotal);
+    const paid = Number(ptPaid);
+    if (total <= 0) return toast.error("Enter total fee");
     const expiresOn = new Date();
     expiresOn.setDate(expiresOn.getDate() + Number(pkg.validity_days ?? 60));
     await supabase.from("pt_enrollments").insert({
@@ -429,9 +432,6 @@ function MemberDetail() {
       starts_on: todayISO(),
       expires_on: expiresOn.toISOString().slice(0, 10),
     });
-    const total = Number(ptTotal);
-    const paid = Number(ptPaid);
-    if (total <= 0) return toast.error("Enter total fee");
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
       status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
@@ -447,6 +447,7 @@ function MemberDetail() {
     setPtOpen(false); setPtPkg(""); setPtTrainer(""); setPtTotal(0); setPtPaid(0); setPtPayMode("cash");
     qc.invalidateQueries();
   };
+  const [addPtPackage, ptBusy] = useAsyncAction(_addPtPackage);
 
   const logPtSession = async (enrollId: string, trainerId: string | null) => {
     await supabase.from("pt_sessions").insert({
