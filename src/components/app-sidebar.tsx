@@ -5,7 +5,6 @@ import {
   Users,
   UserCog,
   Receipt,
-  Calendar,
   Dumbbell,
   Settings,
   Flame,
@@ -30,7 +29,6 @@ const items = [
   { title: "Members", url: "/members", icon: Users },
   { title: "Staff", url: "/staff", icon: UserCog },
   { title: "Billing", url: "/billing", icon: Receipt },
-  { title: "Attendance", url: "/attendance", icon: Calendar },
   { title: "Personal Training", url: "/pt", icon: Dumbbell },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
