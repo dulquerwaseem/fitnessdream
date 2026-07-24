@@ -17,7 +17,7 @@ import { renderTemplate, waLink } from "@/lib/phone";
 import { Plus, Search, Sparkles, MessageCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/leads")({
+export const Route = createFileRoute("/_authenticated/leads/")({
   head: () => ({
     meta: [
       { title: "Leads — Fitness Dream" },
@@ -46,6 +46,7 @@ type Template = { id: string; key: string; name: string; body: string };
 
 const sourceLabels: Record<string, string> = {
   walk_in: "Walk-in",
+  phone_inquiry: "Phone Inquiry",
   referral: "Referral",
   instagram: "Instagram",
   google: "Google",

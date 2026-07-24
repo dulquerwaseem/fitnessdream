@@ -230,13 +230,18 @@ function DashboardPage() {
   );
 }
 
+const sourceLabels: Record<string, string> = {
+  walk_in: "Walk-in", phone_inquiry: "Phone Inquiry", referral: "Referral",
+  instagram: "Instagram", google: "Google", whatsapp_inquiry: "WhatsApp", other: "Other",
+};
+
 function LeadsWidget() {
   const { data } = useQuery({
     queryKey: ["leads-widget"],
     queryFn: async () => {
       const [stagesRes, leadsRes] = await Promise.all([
         supabase.from("lead_stages").select("*").order("order_index"),
-        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id, converted_at, full_name, phone"),
+        supabase.from("leads").select("id, stage_id, source, last_contacted_at, next_follow_up_at, created_at, converted_member_id, converted_at, full_name, phone"),
       ]);
       const stages = stagesRes.data ?? [];
       const leads = leadsRes.data ?? [];
@@ -267,6 +272,14 @@ function LeadsWidget() {
 
   if (!data) return null;
 
+  const openWA = (e: React.MouseEvent, phone: string, name: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const msg = `Hi ${name.split(" ")[0]}, this is Fitness Dream — just following up on your inquiry. Let us know how we can help!`;
+    const digits = String(phone).replace(/[^\d]/g, "").slice(-10);
+    window.open(`https://wa.me/91${digits}?text=${encodeURIComponent(msg)}`, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-3 mt-6">
       <Card className="md:col-span-2">
@@ -295,25 +308,33 @@ function LeadsWidget() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base font-display">Follow-ups due</CardTitle>
+            <CardTitle className="text-base font-display">Follow-ups due today</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">Leads waiting on a reply.</p>
           </div>
-          <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">{data.dueToday.length}</Badge>
+          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">{data.dueToday.length}</Badge>
         </CardHeader>
         <CardContent className="p-0">
           {data.dueToday.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">All caught up.</div>
           ) : (
             <div className="divide-y">
-              {data.dueToday.slice(0, 5).map(l => (
-                <Link key={l.id} to="/leads/$id" params={{ id: l.id }} className="flex items-center justify-between p-3 gap-3 hover:bg-muted/40">
-                  <div className="min-w-0">
-                    <div className="font-medium text-sm truncate">{l.full_name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{l.phone}</div>
+              {data.dueToday.slice(0, 6).map(l => {
+                const anchor = l.last_contacted_at ?? l.created_at;
+                const days = Math.max(0, Math.floor((Date.now() - new Date(anchor).getTime()) / 86400000));
+                return (
+                  <div key={l.id} className="flex items-center justify-between p-3 gap-2 hover:bg-muted/40">
+                    <Link to="/leads/$id" params={{ id: l.id }} className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">{l.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">
+                        {sourceLabels[l.source] ?? l.source} · {days === 0 ? "no contact yet" : `${days}d since contact`}
+                      </div>
+                    </Link>
+                    <Button size="icon" variant="ghost" onClick={(e) => openWA(e, l.phone, l.full_name)} title="Send WhatsApp">
+                      <MessageCircle className="h-4 w-4 text-success" />
+                    </Button>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -321,3 +342,4 @@ function LeadsWidget() {
     </div>
   );
 }
+

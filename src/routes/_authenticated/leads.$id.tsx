@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/leads/$id")({
 });
 
 const sourceLabels: Record<string, string> = {
-  walk_in: "Walk-in", referral: "Referral", instagram: "Instagram",
+  walk_in: "Walk-in", phone_inquiry: "Phone Inquiry", referral: "Referral", instagram: "Instagram",
   google: "Google", whatsapp_inquiry: "WhatsApp", other: "Other",
 };
 
@@ -58,6 +58,7 @@ function LeadDetail() {
   const [waOpen, setWaOpen] = useState(false);
   const [tplId, setTplId] = useState("");
   const [waMsg, setWaMsg] = useState("");
+  const [showAllTpls, setShowAllTpls] = useState(false);
 
   if (isLoading) return <Skeleton className="h-40 rounded-xl" />;
   if (!lead) return <div className="text-center py-16 text-muted-foreground">Lead not found. <Link to="/leads" className="text-primary story-link">Back to leads</Link></div>;
@@ -132,10 +133,19 @@ function LeadDetail() {
                 <DialogHeader><DialogTitle>Send WhatsApp to {lead.full_name}</DialogTitle></DialogHeader>
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs">Template</Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Template (matching {sourceLabels[lead.source]})</Label>
+                      <button type="button" className="text-[11px] text-primary hover:underline" onClick={() => setShowAllTpls(v => !v)}>
+                        {showAllTpls ? "Filter to source" : "Show all templates"}
+                      </button>
+                    </div>
                     <Select value={tplId} onValueChange={pickTemplate}>
                       <SelectTrigger><SelectValue placeholder="Pick a template (optional)" /></SelectTrigger>
-                      <SelectContent>{templates?.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>{(templates ?? []).filter(t => {
+                        if (showAllTpls) return true;
+                        const cats = (t as { source_categories?: string[] }).source_categories ?? ["all"];
+                        return cats.includes("all") || cats.includes(lead.source);
+                      }).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div>
@@ -178,7 +188,18 @@ function LeadDetail() {
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Next follow-up</div>
-              <div>{lead.next_follow_up_at ? fmtDateTime(lead.next_follow_up_at) : "—"}</div>
+              <Input
+                type="datetime-local"
+                defaultValue={lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16) : ""}
+                onBlur={async (e) => {
+                  const v = e.target.value ? new Date(e.target.value).toISOString() : null;
+                  await supabase.from("leads").update({ next_follow_up_at: v }).eq("id", id);
+                  qc.invalidateQueries({ queryKey: ["lead", id] });
+                  qc.invalidateQueries({ queryKey: ["leads-all"] });
+                  toast.success("Follow-up updated");
+                }}
+                className="h-8 text-sm"
+              />
             </div>
             {lead.notes && (
               <div className="pt-2 border-t space-y-1">

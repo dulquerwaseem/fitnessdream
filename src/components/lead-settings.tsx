@@ -104,24 +104,40 @@ export function LeadStagesSettings() {
   );
 }
 
+const SOURCE_OPTS: { v: string; l: string }[] = [
+  { v: "all", l: "All sources" },
+  { v: "walk_in", l: "Walk-in" },
+  { v: "phone_inquiry", l: "Phone Inquiry" },
+  { v: "referral", l: "Referral" },
+  { v: "instagram", l: "Instagram" },
+  { v: "google", l: "Google" },
+  { v: "whatsapp_inquiry", l: "WhatsApp Inquiry" },
+  { v: "other", l: "Other" },
+];
+
 export function LeadTemplatesSettings() {
   const qc = useQueryClient();
   const { data: templates } = useQuery({
     queryKey: ["lead-templates"],
     queryFn: async () => (await supabase.from("lead_templates").select("*").order("name")).data ?? [],
   });
-  const [newTpl, setNewTpl] = useState({ key: "", name: "", body: "" });
+  const [newTpl, setNewTpl] = useState<{ key: string; name: string; body: string; source_categories: string[] }>({
+    key: "", name: "", body: "", source_categories: ["all"],
+  });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["lead-templates"] });
 
   const add = async () => {
     if (!newTpl.key.trim() || !newTpl.name.trim() || !newTpl.body.trim()) return toast.error("All fields required");
-    const { error } = await supabase.from("lead_templates").insert(newTpl);
+    const { error } = await supabase.from("lead_templates").insert({
+      ...newTpl,
+      source_categories: newTpl.source_categories.length ? newTpl.source_categories : ["all"],
+    });
     if (error) return toast.error(error.message);
-    setNewTpl({ key: "", name: "", body: "" });
+    setNewTpl({ key: "", name: "", body: "", source_categories: ["all"] });
     refresh();
   };
-  const update = async (id: string, patch: Partial<{ name: string; body: string }>) => {
+  const update = async (id: string, patch: Partial<{ name: string; body: string; source_categories: string[] }>) => {
     await supabase.from("lead_templates").update(patch).eq("id", id);
     refresh();
   };
@@ -130,34 +146,73 @@ export function LeadTemplatesSettings() {
     refresh();
   };
 
+  const toggleCat = (current: string[], v: string): string[] => {
+    if (v === "all") return ["all"];
+    const next = current.filter(c => c !== "all");
+    return next.includes(v) ? next.filter(c => c !== v) : [...next, v];
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Lead WhatsApp templates</CardTitle>
-        <CardDescription>Use {"{{name}}"} for the lead's first name. Separate from member templates.</CardDescription>
+        <CardDescription>Group templates by lead source. Use {"{{name}}"} for the lead's first name.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {(templates ?? []).map(t => (
-          <div key={t.id} className="p-3 rounded-lg border space-y-2">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono text-[10px]">{t.key}</Badge>
-              <Input defaultValue={t.name} onBlur={(e) => e.target.value !== t.name && update(t.id, { name: e.target.value })} className="max-w-[280px]" />
-              <div className="flex-1" />
-              <Button size="icon" variant="ghost" onClick={() => del(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+        {(templates ?? []).map(t => {
+          const cats: string[] = (t as { source_categories?: string[] }).source_categories ?? ["all"];
+          return (
+            <div key={t.id} className="p-3 rounded-lg border space-y-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="font-mono text-[10px]">{t.key}</Badge>
+                <Input defaultValue={t.name} onBlur={(e) => e.target.value !== t.name && update(t.id, { name: e.target.value })} className="max-w-[280px]" />
+                <div className="flex-1" />
+                <Button size="icon" variant="ghost" onClick={() => del(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {SOURCE_OPTS.map(s => {
+                  const active = cats.includes(s.v);
+                  return (
+                    <button
+                      type="button"
+                      key={s.v}
+                      onClick={() => update(t.id, { source_categories: toggleCat(cats, s.v) })}
+                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+                    >
+                      {s.l}
+                    </button>
+                  );
+                })}
+              </div>
+              <textarea
+                defaultValue={t.body}
+                onBlur={(e) => e.target.value !== t.body && update(t.id, { body: e.target.value })}
+                rows={3}
+                className="w-full text-sm rounded-md border bg-background p-2 font-mono"
+              />
             </div>
-            <textarea
-              defaultValue={t.body}
-              onBlur={(e) => e.target.value !== t.body && update(t.id, { body: e.target.value })}
-              rows={3}
-              className="w-full text-sm rounded-md border bg-background p-2 font-mono"
-            />
-          </div>
-        ))}
+          );
+        })}
         <div className="mt-6 border-t pt-6 space-y-2">
           <div className="text-sm font-semibold">Add template</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Input placeholder="Key (e.g. thanks_visit)" value={newTpl.key} onChange={(e) => setNewTpl(t => ({ ...t, key: e.target.value.toLowerCase().replace(/\s+/g, "_") }))} />
             <Input placeholder="Name" value={newTpl.name} onChange={(e) => setNewTpl(t => ({ ...t, name: e.target.value }))} />
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {SOURCE_OPTS.map(s => {
+              const active = newTpl.source_categories.includes(s.v);
+              return (
+                <button
+                  type="button"
+                  key={s.v}
+                  onClick={() => setNewTpl(t => ({ ...t, source_categories: toggleCat(t.source_categories, s.v) }))}
+                  className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"}`}
+                >
+                  {s.l}
+                </button>
+              );
+            })}
           </div>
           <textarea
             rows={3}
