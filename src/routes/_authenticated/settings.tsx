@@ -185,7 +185,7 @@ function SettingsPage() {
         }
       }
       setImportResult(null);
-      setRestore({ totalInFile, toAdd, toUpdate, dupInFile, invalid });
+      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
