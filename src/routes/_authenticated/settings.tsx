@@ -334,17 +334,106 @@ function SettingsPage() {
           {restore && (
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Restore preview</AlertTitle>
-              <AlertDescription className="space-y-2">
+              <AlertTitle>Restore preview — {restore.totalInFile} records read</AlertTitle>
+              <AlertDescription className="space-y-3">
                 <div className="text-sm">
-                  <strong>{restore.preview.toAdd.length}</strong> new · <strong>{restore.preview.toUpdate.length}</strong> already exist (will skip to protect current data) · <strong>{restore.preview.toSkip.length}</strong> duplicate phones in file
+                  <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
+                  <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
+                  <strong>{restore.dupInFile.length}</strong> duplicate phones in file ·{" "}
+                  <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
+
+                {restore.invalid.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium text-destructive">
+                      Missing required fields ({restore.invalid.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.dupInFile.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Duplicate phones in file ({restore.dupInFile.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.dupInFile.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.toUpdate.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Already exist in database ({restore.toUpdate.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.toUpdate.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" onClick={doRestore} disabled={restoring} className="gradient-primary text-primary-foreground">
-                    {restoring ? "Restoring…" : `Restore ${restore.preview.toAdd.length} members`}
+                    {restoring ? "Restoring…" : `Restore ${restore.toAdd.length} members`}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setRestore(null)}>Cancel</Button>
                 </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {importResult && (
+            <Alert className="mt-4">
+              <AlertTitle>Import audit log</AlertTitle>
+              <AlertDescription className="space-y-3">
+                <div className="text-sm grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  <div><div className="text-xs text-muted-foreground">Read from file</div><div className="font-semibold">{importResult.read}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Inserted</div><div className="font-semibold text-success">{importResult.inserted}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Skipped (exists)</div><div className="font-semibold">{importResult.skippedExisting}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Dup in file</div><div className="font-semibold">{importResult.skippedDupInFile}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Invalid</div><div className="font-semibold text-destructive">{importResult.skippedInvalid}</div></div>
+                </div>
+                {importResult.invalid.length > 0 && (
+                  <details className="text-xs" open>
+                    <summary className="cursor-pointer font-medium text-destructive">
+                      Skipped — missing required fields ({importResult.invalid.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {importResult.dupInFile.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Skipped — duplicate phone in file ({importResult.dupInFile.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.dupInFile.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
+                    </ul>
+                  </details>
+                )}
+                {importResult.skippedExistingList.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium">
+                      Skipped — already exists in database ({importResult.skippedExistingList.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.skippedExistingList.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
+                    </ul>
+                  </details>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setImportResult(null)}>Dismiss</Button>
               </AlertDescription>
             </Alert>
           )}
