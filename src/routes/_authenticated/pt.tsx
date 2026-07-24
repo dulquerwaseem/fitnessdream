@@ -118,7 +118,7 @@ function PTPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button className="gradient-primary text-primary-foreground" onClick={create}>Create</Button>
+                <Button className="gradient-primary text-primary-foreground" onClick={() => create()} disabled={createBusy}>{createBusy ? "Processing…" : "Create"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
