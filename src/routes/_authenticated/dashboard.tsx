@@ -38,14 +38,13 @@ function useDashboard() {
       const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-      const [members, expiring, revenue, joins, attendance, dues] = await Promise.all([
+      const [members, expiring, revenue, joins, dues] = await Promise.all([
         // Active = not frozen AND expiry_date >= today (includes "expiring soon")
         supabase.from("members").select("id", { count: "exact", head: true }).is("frozen_at", null).gte("expiry_date", today),
         supabase.from("members_with_status").select("id, full_name, expiry_date, phone").eq("status", "expiring_soon").order("expiry_date"),
         supabase.from("payments").select("amount, paid_at").gte("paid_at", monthStart),
         // New joins MTD = start_date in current calendar month (not created_at, which reflects import time)
         supabase.from("members").select("id", { count: "exact", head: true }).gte("start_date", monthStartDate),
-        supabase.from("attendance").select("id", { count: "exact", head: true }).eq("subject_type", "member").gte("check_in", todayStart),
         supabase.from("members").select("balance_due"),
       ]);
 
