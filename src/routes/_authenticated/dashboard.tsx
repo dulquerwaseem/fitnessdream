@@ -210,8 +210,8 @@ function DashboardPage() {
             <div className="p-8 text-center text-sm text-muted-foreground">Nobody expiring in the next 7 days. Nice.</div>
           ) : (
             <div className="divide-y">
-              {data.expiringList.map((m) => (
-                <ExpiringRow key={m.id} m={m} />
+              {data.expiringList.filter(m => m.id).map((m) => (
+                <ExpiringRow key={m.id!} m={{ id: m.id!, full_name: m.full_name, expiry_date: m.expiry_date, phone: m.phone }} />
               ))}
             </div>
           )}
