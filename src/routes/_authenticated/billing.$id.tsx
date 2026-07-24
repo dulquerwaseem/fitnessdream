@@ -50,7 +50,7 @@ function InvoiceDetail() {
   const balance = Number(inv.total) - Number(inv.amount_paid);
   const member = inv.members as { full_name?: string; phone?: string; email?: string } | null;
 
-  const recordPayment = async () => {
+  const _recordPayment = async () => {
     if (payAmt <= 0) return toast.error("Enter amount");
     const newPaid = Number(inv.amount_paid) + payAmt;
     const status = newPaid <= 0 ? "unpaid" : newPaid >= Number(inv.total) ? "paid" : "partial";
