@@ -58,6 +58,7 @@ function LeadDetail() {
   const [waOpen, setWaOpen] = useState(false);
   const [tplId, setTplId] = useState("");
   const [waMsg, setWaMsg] = useState("");
+  const [showAllTpls, setShowAllTpls] = useState(false);
 
   if (isLoading) return <Skeleton className="h-40 rounded-xl" />;
   if (!lead) return <div className="text-center py-16 text-muted-foreground">Lead not found. <Link to="/leads" className="text-primary story-link">Back to leads</Link></div>;
