@@ -9,12 +9,11 @@ import { PageHeader } from "@/components/page-header";
 import { fmtCurrency, fmtDate } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
-  Users, AlertTriangle, TrendingUp, UserPlus, Calendar, Wallet,
+  Users, AlertTriangle, TrendingUp, UserPlus, Wallet,
   ArrowRight, Plus, Receipt, MessageCircle,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-  BarChart, Bar,
 } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
