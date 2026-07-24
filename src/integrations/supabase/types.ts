@@ -271,6 +271,7 @@ export type Database = {
           id: string
           key: string
           name: string
+          source_categories: string[]
           updated_at: string
         }
         Insert: {
@@ -279,6 +280,7 @@ export type Database = {
           id?: string
           key: string
           name: string
+          source_categories?: string[]
           updated_at?: string
         }
         Update: {
@@ -287,6 +289,7 @@ export type Database = {
           id?: string
           key?: string
           name?: string
+          source_categories?: string[]
           updated_at?: string
         }
         Relationships: []
@@ -1040,6 +1043,7 @@ export type Database = {
       invoice_status: "paid" | "partial" | "unpaid"
       lead_source:
         | "walk_in"
+        | "phone_inquiry"
         | "referral"
         | "instagram"
         | "google"
@@ -1178,6 +1182,7 @@ export const Constants = {
       invoice_status: ["paid", "partial", "unpaid"],
       lead_source: [
         "walk_in",
+        "phone_inquiry",
         "referral",
         "instagram",
         "google",
