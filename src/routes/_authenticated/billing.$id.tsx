@@ -82,8 +82,15 @@ function InvoiceDetail() {
             <Button variant="outline" onClick={() => printInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
               <Printer className="h-4 w-4 mr-1" /> Print
             </Button>
-            <Button variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
-              <Download className="h-4 w-4 mr-1" /> PDF
+            <Button variant="outline" onClick={async () => {
+              const args = { invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) };
+              const shared = await shareInvoicePdfFile(args);
+              if (!shared) {
+                downloadInvoicePdf(args);
+                toast.message("Sharing not supported in this browser — downloaded PDF instead.");
+              }
+            }}>
+              <Send className="h-4 w-4 mr-1" /> Share Invoice
             </Button>
             {balance > 0 && (
               <Dialog open={payOpen} onOpenChange={setPayOpen}>
