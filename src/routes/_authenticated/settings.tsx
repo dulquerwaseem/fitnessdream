@@ -251,6 +251,7 @@ function SettingsPage() {
         <TabsList>
           <TabsTrigger value="gym"><Building2 className="h-3.5 w-3.5 mr-1" /> Gym</TabsTrigger>
           <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="member-templates">Member templates</TabsTrigger>
           <TabsTrigger value="stages">Lead pipeline</TabsTrigger>
           <TabsTrigger value="lead-templates">Lead templates</TabsTrigger>
           <TabsTrigger value="backup">Backup & restore</TabsTrigger>
