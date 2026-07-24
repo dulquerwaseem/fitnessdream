@@ -124,6 +124,7 @@ function SettingsPage() {
     invalid: FlaggedRow[];
   } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [forceAll, setForceAll] = useState(false);
   const [importResult, setImportResult] = useState<{
     read: number;
     inserted: number;
