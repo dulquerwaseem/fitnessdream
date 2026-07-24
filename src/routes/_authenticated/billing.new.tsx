@@ -92,7 +92,7 @@ function NewInvoicePage() {
             <span className="text-xl font-display font-bold">{fmtCurrency(subtotal)}</span>
           </div>
 
-          <div className="space-y-2"><Label>Amount paid now</Label><Input type="number" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} /></div>
+          <div className="space-y-2"><Label>Amount paid now</Label><MoneyInput value={amountPaid} onChange={setAmountPaid} /></div>
           <div className="space-y-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </CardContent>
       </Card>
