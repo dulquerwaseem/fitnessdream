@@ -259,7 +259,7 @@ function MemberDetail() {
     setPayDate(todayISO());
     setPayOpen(true);
   };
-  const savePayment = async () => {
+  const _savePayment = async () => {
     const amount = Number(payAmount);
     if (!amount || amount <= 0) return toast.error("Enter an amount");
     const paidAt = new Date(payDate + "T" + new Date().toISOString().slice(11, 19)).toISOString();
