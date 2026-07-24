@@ -215,6 +215,7 @@ function MemberDetail() {
     setRenewOpen(false);
     qc.invalidateQueries();
   };
+  const [handleRenew, renewBusy] = useAsyncAction(_handleRenew);
 
   const openEdit = () => {
     setEditForm({
