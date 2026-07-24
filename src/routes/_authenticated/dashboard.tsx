@@ -39,12 +39,12 @@ function useDashboard() {
 
       const [members, expiring, revenue, joins, dues] = await Promise.all([
         // Active = not frozen AND expiry_date >= today (includes "expiring soon")
-        supabase.from("members").select("id", { count: "exact", head: true }).is("frozen_at", null).gte("expiry_date", today),
-        supabase.from("members_with_status").select("id, full_name, expiry_date, phone").eq("status", "expiring_soon").order("expiry_date"),
-        supabase.from("payments").select("amount, paid_at").gte("paid_at", monthStart),
+        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today),
+        supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", new Date(Date.now() + 7 * 86400000).toISOString().slice(0,10)).order("expiry_date"),
+        supabase.from("payments").select("amount, paid_at").is("deleted_at", null).gte("paid_at", monthStart),
         // New joins MTD = start_date in current calendar month (not created_at, which reflects import time)
-        supabase.from("members").select("id", { count: "exact", head: true }).gte("start_date", monthStartDate),
-        supabase.from("members").select("balance_due"),
+        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("start_date", monthStartDate),
+        supabase.from("members").select("balance_due").is("deleted_at", null),
       ]);
 
       const revTotal = (revenue.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
