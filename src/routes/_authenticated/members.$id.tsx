@@ -337,13 +337,31 @@ function MemberDetail() {
   };
 
   const shareInvoice = async (inv: any) => {
-    const t = toast.loading("Preparing invoice link…");
-    let invoiceLink = "";
+    const t = toast.loading("Preparing invoice…");
     try {
       const [{ data: items }, { data: invPays }] = await Promise.all([
         supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
         supabase.from("payments").select("mode").eq("invoice_id", inv.id).is("deleted_at", null),
       ]);
+      const shareArgs = {
+        invoice: inv,
+        items: (items ?? []) as any,
+        member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
+        gym: gym as any,
+        paymentMethods: (invPays ?? []).map(p => p.mode as string),
+      };
+      const { shareInvoicePdfFile } = await import("@/lib/pdf");
+      const shared = await shareInvoicePdfFile(shareArgs);
+      if (shared) {
+        toast.dismiss(t);
+        supabase.from("messages_log").insert({
+          member_id: id, channel: "whatsapp", template_key: "invoice", body: `Shared invoice #${inv.number}`,
+        }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
+        return;
+      }
+      // Fallback: upload PDF and share wa.me link
+      let invoiceLink = "";
+      const { generateInvoicePdf } = await import("@/lib/pdf");
       const doc = generateInvoicePdf({
         gymName: gym?.name ?? "Fitness Dream",
         gymTagline: (gym as any)?.tagline ?? null,
