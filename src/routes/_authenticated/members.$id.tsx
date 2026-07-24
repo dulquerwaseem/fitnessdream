@@ -156,12 +156,7 @@ function MemberDetail() {
   if (!m) return <div className="text-center py-16 text-muted-foreground">Member not found. <Link to="/members" className="text-primary story-link">Back to list</Link></div>;
 
   const balanceDue = Number(m.balance_due ?? 0);
-  const visitsThisMonth = (att ?? []).filter(a => {
-    const d = new Date(a.check_in);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-  const lastVisit = att?.[0]?.check_in;
+
 
   const freezeToggle = async () => {
     const isFrozen = !!m.frozen_at;
