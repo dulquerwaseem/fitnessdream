@@ -999,14 +999,7 @@ export type Database = {
       }
     }
     Functions: {
-      current_user_has_any_role: { Args: never; Returns: boolean }
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "admin" | "staff" | "front_desk"
