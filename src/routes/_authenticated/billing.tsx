@@ -29,17 +29,23 @@ const statusColor: Record<string, string> = {
 };
 
 function BillingPage() {
+  const [modeFilter, setModeFilter] = useState<string>("all");
   const { data, isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
       const { data } = await supabase
         .from("invoices")
-        .select("id, number, total, amount_paid, status, issued_at, member:members!invoices_member_id_fkey(full_name, phone)")
+        .select("id, number, total, amount_paid, status, issued_at, member:members!invoices_member_id_fkey(full_name, phone), payments(mode)")
         .order("issued_at", { ascending: false })
         .limit(200);
       return data ?? [];
     },
   });
+
+  const filtered = useMemo(() => {
+    if (modeFilter === "all") return data ?? [];
+    return (data ?? []).filter((inv: any) => (inv.payments ?? []).some((p: any) => p.mode === modeFilter));
+  }, [data, modeFilter]);
 
   return (
     <div>
