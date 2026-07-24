@@ -110,6 +110,37 @@ function BillingPage() {
                   size="icon"
                   variant="ghost"
                   className="shrink-0"
+                  title="Share invoice"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const [{ data: full }, { data: items }, { data: pays }] = await Promise.all([
+                      supabase.from("invoices").select("*, members(full_name, phone)").eq("id", inv.id).single(),
+                      supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
+                      supabase.from("payments").select("mode").eq("invoice_id", inv.id).is("deleted_at", null),
+                    ]);
+                    const { data: gym } = await supabase.from("gym_settings").select("*").maybeSingle();
+                    if (!full) return;
+                    const args = {
+                      invoice: full as any,
+                      items: (items ?? []) as any,
+                      member: (full as any).members ?? null,
+                      gym: gym as any,
+                      paymentMethods: (pays ?? []).map((p: any) => p.mode),
+                    };
+                    const shared = await shareInvoicePdfFile(args);
+                    if (!shared) {
+                      downloadInvoicePdf(args);
+                      toast.message("Sharing not supported — downloaded PDF instead.");
+                    }
+                  }}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="shrink-0"
                   title="Print invoice"
                   onClick={async (e) => {
                     e.preventDefault();
