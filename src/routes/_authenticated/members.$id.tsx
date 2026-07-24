@@ -338,6 +338,7 @@ function MemberDetail() {
 
   const shareInvoice = async (inv: any) => {
     const t = toast.loading("Preparing invoice…");
+    let invoiceLink = "";
     try {
       const [{ data: items }, { data: invPays }] = await Promise.all([
         supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
