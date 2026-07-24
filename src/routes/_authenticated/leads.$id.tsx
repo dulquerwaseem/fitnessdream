@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { toast } from "sonner";
-import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight, Trash2 } from "lucide-react";
+import { softDelete } from "@/lib/soft-delete";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({
