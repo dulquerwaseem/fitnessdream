@@ -134,9 +134,25 @@ function InvoiceDetail() {
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t flex justify-between items-center">
-              <span className="text-muted-foreground">Total</span>
-              <span className="text-xl font-display font-bold">{fmtCurrency(inv.total)}</span>
+            <div className="border-t p-5 bg-muted/20">
+              <dl className="ml-auto max-w-xs space-y-2 text-sm tabular-nums">
+                <div className="flex items-baseline justify-between gap-8">
+                  <dt className="text-muted-foreground font-normal">Subtotal</dt>
+                  <dd className="font-normal">{fmtCurrency(inv.subtotal)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-8">
+                  <dt className="text-muted-foreground font-normal">Total</dt>
+                  <dd className="font-medium">{fmtCurrency(inv.total)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-8">
+                  <dt className="text-muted-foreground font-normal">Paid</dt>
+                  <dd className="text-success font-medium">{fmtCurrency(inv.amount_paid)}</dd>
+                </div>
+                <div className="mt-2 flex items-baseline justify-between gap-8 border-t pt-3">
+                  <dt className="text-sm uppercase tracking-wide font-semibold">Balance Due</dt>
+                  <dd className={`text-2xl font-display font-bold ${balance > 0 ? "text-destructive" : "text-success"}`}>{fmtCurrency(balance)}</dd>
+                </div>
+              </dl>
             </div>
           </CardContent>
         </Card>
@@ -149,10 +165,6 @@ function InvoiceDetail() {
             {member?.email && <div className="text-muted-foreground">{member.email}</div>}
           </CardContent></Card>
 
-          <Card><CardContent className="p-4 space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Paid</span><span className="text-success font-medium">{fmtCurrency(inv.amount_paid)}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Balance</span><span className={balance > 0 ? "text-destructive font-medium" : "text-success font-medium"}>{fmtCurrency(balance)}</span></div>
-          </CardContent></Card>
 
           <Card>
             <CardHeader><CardTitle className="text-sm">Payments</CardTitle></CardHeader>
