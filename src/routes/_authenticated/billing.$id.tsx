@@ -90,7 +90,7 @@ function InvoiceDetail() {
                 <DialogContent>
                   <DialogHeader><DialogTitle>Record payment</DialogTitle></DialogHeader>
                   <div className="space-y-4">
-                    <div className="space-y-1"><Label>Amount</Label><Input type="number" value={payAmt} onChange={(e) => setPayAmt(Number(e.target.value))} /></div>
+                    <div className="space-y-1"><Label>Amount</Label><MoneyInput value={payAmt} onChange={setPayAmt} /></div>
                     <div className="space-y-1"><Label>Mode</Label>
                       <Select value={payMode} onValueChange={setPayMode}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
