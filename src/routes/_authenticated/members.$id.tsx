@@ -685,31 +685,8 @@ function MemberDetail() {
           </Card>
         </TabsContent>
 
-        {/* ATTENDANCE */}
-        <TabsContent value="attendance" className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <Stat label="Visits this month" value={String(visitsThisMonth)} />
-            <Stat label="Last visit" value={lastVisit ? fmtDateTime(lastVisit) : "—"} />
-            <Stat label="Total recorded" value={String(att?.length ?? 0)} />
-          </div>
-          <Card>
-            <CardHeader><CardTitle className="text-base">Check-in history</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {(att?.length ?? 0) === 0 ? (
-                <div className="p-6 text-center text-sm text-muted-foreground">No check-ins recorded.</div>
-              ) : (
-                <div className="divide-y max-h-[500px] overflow-auto">
-                  {att!.map(a => (
-                    <div key={a.id} className="flex items-center justify-between p-4">
-                      <div className="text-sm">{fmtDateTime(a.check_in)}</div>
-                      {a.check_out ? <Badge variant="outline">Out {fmtDateTime(a.check_out)}</Badge> : <Badge className="bg-success/15 text-success border-success/30" variant="outline">In</Badge>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+
+
 
         {/* MESSAGES */}
         <TabsContent value="messages" className="space-y-4">
