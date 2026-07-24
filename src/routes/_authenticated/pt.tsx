@@ -32,8 +32,9 @@ function PTPage() {
 
   const { data: enrollments, isLoading } = useQuery({
     queryKey: ["pt-enrollments"],
-    queryFn: async () => (await supabase.from("pt_enrollments").is("deleted_at", null)
+    queryFn: async () => (await supabase.from("pt_enrollments")
       .select("*, member:members!pt_enrollments_member_id_fkey(full_name, phone), trainer:staff!pt_enrollments_trainer_id_fkey(full_name), package:pt_packages!pt_enrollments_package_id_fkey(name, price)")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false })).data ?? [],
   });
   const { data: members } = useQuery({
