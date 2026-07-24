@@ -67,6 +67,7 @@ function InvoiceDetail() {
     setPayOpen(false); setPayAmt(0);
     qc.invalidateQueries();
   };
+  const [recordPayment, payBusy] = useAsyncAction(_recordPayment);
 
   const items = (inv.invoice_items ?? []) as Array<{ description: string; qty: number; unit_price: number; amount: number }>;
 
