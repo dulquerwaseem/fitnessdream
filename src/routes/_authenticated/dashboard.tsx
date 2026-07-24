@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { fmtCurrency, fmtDate } from "@/lib/format";
-import { openWhatsApp } from "@/lib/phone";
+import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
   Users, AlertTriangle, TrendingUp, UserPlus, Calendar, Wallet,
   ArrowRight, Plus, Receipt, MessageCircle,
