@@ -85,6 +85,54 @@ export function printInvoicePdf(args: Parameters<typeof downloadInvoicePdf>[0]) 
   }
 }
 
+/**
+ * Try to share the invoice PDF as a real file via Web Share API.
+ * Returns true when the native share panel was invoked (or user cancelled it),
+ * false when the browser cannot share files — caller should run fallback.
+ */
+export async function shareInvoicePdfFile(
+  args: Parameters<typeof downloadInvoicePdf>[0]
+): Promise<boolean> {
+  const doc = generateInvoicePdf({
+    gymName: args.gym?.name ?? "Fitness Dream",
+    gymTagline: args.gym?.tagline ?? null,
+    gymAddress: args.gym?.address ?? null,
+    gymPhone: args.gym?.phone ?? null,
+    gymEmail: args.gym?.email ?? null,
+    currencySymbol: args.gym?.currency_symbol ?? "₹",
+    number: args.invoice.number,
+    issuedAt: args.invoice.issued_at,
+    memberName: args.member?.full_name ?? "Walk-in",
+    memberPhone: args.member?.phone ?? null,
+    items: args.items,
+    subtotal: Number(args.invoice.subtotal),
+    total: Number(args.invoice.total),
+    amountPaid: Number(args.invoice.amount_paid),
+    notes: args.invoice.notes,
+    terms: args.gym?.invoice_terms ?? null,
+    paymentMethods: args.paymentMethods,
+  });
+  const blob = doc.output("blob");
+  const filename = `invoice-${args.invoice.number}.pdf`;
+  const file = new File([blob], filename, { type: "application/pdf" });
+  const nav = typeof navigator !== "undefined" ? (navigator as Navigator & { canShare?: (d: ShareData) => boolean }) : null;
+  if (!nav || typeof nav.share !== "function" || typeof nav.canShare !== "function") return false;
+  const shareData: ShareData = {
+    files: [file],
+    title: `Invoice ${args.invoice.number}`,
+    text: `Invoice ${args.invoice.number}`,
+  };
+  if (!nav.canShare(shareData)) return false;
+  try {
+    await nav.share(shareData);
+    return true;
+  } catch (e: unknown) {
+    // AbortError means user dismissed the share sheet — treat as handled.
+    if (e && typeof e === "object" && "name" in e && (e as { name: string }).name === "AbortError") return true;
+    return false;
+  }
+}
+
 // Brand palette
 const ORANGE: [number, number, number] = [255, 90, 31];
 const ORANGE_DEEP: [number, number, number] = [214, 64, 12];
