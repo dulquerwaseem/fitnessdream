@@ -79,6 +79,9 @@ function InvoiceDetail() {
         description={`Issued ${fmtDate(inv.issued_at)}`}
         actions={
           <>
+            <Button variant="outline" onClick={() => printInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
+              <Printer className="h-4 w-4 mr-1" /> Print
+            </Button>
             <Button variant="outline" onClick={() => downloadInvoicePdf({ invoice: inv, items, member, gym, paymentMethods: (pays ?? []).map(p => p.mode) })}>
               <Download className="h-4 w-4 mr-1" /> PDF
             </Button>
