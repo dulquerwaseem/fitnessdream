@@ -436,23 +436,25 @@ function MemberDetail() {
       {/* HEADER */}
       <Card className="mb-6">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row md:items-center gap-6">
-            <Avatar className="h-20 w-20">
-              {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-display font-bold">{initials(m.full_name)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-display font-bold truncate">{m.full_name}</h1>
-                <Badge variant="outline" className={`capitalize ${statusStyles[status]}`}>
-                  {status.replace("_", " ")}
-                </Badge>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {m.phone}</span>
-                {m.email ? <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {m.email}</span> : null}
-                {m.address ? <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {m.address}</span> : null}
-                {m.dob ? <span className="flex items-center gap-1"><Cake className="h-3.5 w-3.5" /> {fmtDate(m.dob)}</span> : null}
+          <div className="flex flex-col gap-6">
+            <div className="flex items-start gap-6">
+              <Avatar className="h-20 w-20 shrink-0">
+                {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} /> : null}
+                <AvatarFallback className="bg-primary/10 text-primary text-xl font-display font-bold">{initials(m.full_name)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl font-display font-bold truncate">{m.full_name}</h1>
+                  <Badge variant="outline" className={`capitalize ${statusStyles[status]}`}>
+                    {status.replace("_", " ")}
+                  </Badge>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {m.phone}</span>
+                  {m.email ? <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {m.email}</span> : null}
+                  {m.address ? <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {m.address}</span> : null}
+                  {m.dob ? <span className="flex items-center gap-1"><Cake className="h-3.5 w-3.5" /> {fmtDate(m.dob)}</span> : null}
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
