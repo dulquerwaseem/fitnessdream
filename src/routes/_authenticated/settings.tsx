@@ -119,11 +119,13 @@ function SettingsPage() {
   const [restore, setRestore] = useState<{
     totalInFile: number;
     toAdd: (BackupMember & { phone_normalized: string })[];
+    allValid: (BackupMember & { phone_normalized: string })[];
     toUpdate: FlaggedRow[];
     dupInFile: FlaggedRow[];
     invalid: FlaggedRow[];
   } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [forceAll, setForceAll] = useState(false);
   const [importResult, setImportResult] = useState<{
     read: number;
     inserted: number;
@@ -183,7 +185,7 @@ function SettingsPage() {
         }
       }
       setImportResult(null);
-      setRestore({ totalInFile, toAdd, toUpdate, dupInFile, invalid });
+      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -194,7 +196,8 @@ function SettingsPage() {
   const doRestore = async () => {
     if (!restore) return;
     setRestoring(true);
-    const rows = restore.toAdd.map(m => ({
+    const source = forceAll ? restore.allValid : restore.toAdd;
+    const rows = source.map(m => ({
       full_name: m.full_name,
       phone: m.phone,
       phone_normalized: m.phone_normalized,
@@ -218,14 +221,15 @@ function SettingsPage() {
     setImportResult({
       read: restore.totalInFile,
       inserted,
-      skippedExisting: restore.toUpdate.length,
-      skippedDupInFile: restore.dupInFile.length,
+      skippedExisting: forceAll ? 0 : restore.toUpdate.length,
+      skippedDupInFile: forceAll ? 0 : restore.dupInFile.length,
       skippedInvalid: restore.invalid.length,
       invalid: restore.invalid,
-      skippedExistingList: restore.toUpdate,
-      dupInFile: restore.dupInFile,
+      skippedExistingList: forceAll ? [] : restore.toUpdate,
+      dupInFile: forceAll ? [] : restore.dupInFile,
     });
     setRestore(null);
+    setForceAll(false);
     toast.success(`Restored ${inserted} members`);
     qc.invalidateQueries();
   };
@@ -380,11 +384,16 @@ function SettingsPage() {
                   </details>
                 )}
 
+                <label className="flex items-center gap-2 text-xs mt-2 cursor-pointer">
+                  <input type="checkbox" checked={forceAll} onChange={(e) => setForceAll(e.target.checked)} />
+                  <span>Force insert all valid rows (ignore duplicates — will create duplicate members you can clean up later)</span>
+                </label>
+
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" onClick={doRestore} disabled={restoring} className="gradient-primary text-primary-foreground">
-                    {restoring ? "Restoring…" : `Restore ${restore.toAdd.length} members`}
+                    {restoring ? "Restoring…" : `Restore ${forceAll ? restore.allValid.length : restore.toAdd.length} members`}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setRestore(null)}>Cancel</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setRestore(null); setForceAll(false); }}>Cancel</Button>
                 </div>
               </AlertDescription>
             </Alert>
