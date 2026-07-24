@@ -465,6 +465,10 @@ function SettingsPage() {
             </Alert>
           )}
         </TabsContent>
+
+        <TabsContent value="trash">
+          <RecentlyDeleted />
+        </TabsContent>
       </Tabs>
     </div>
   );
