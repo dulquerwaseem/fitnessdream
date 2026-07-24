@@ -843,7 +843,7 @@ function MemberDetail() {
           <DialogHeader><DialogTitle>Create invoice</DialogTitle><DialogDescription>Ad-hoc charge (late fee, merchandise, etc.)</DialogDescription></DialogHeader>
           <div className="grid gap-3">
             <div className="space-y-2"><Label>Description</Label><Input value={invDesc} onChange={e => setInvDesc(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={invAmount} onChange={e => setInvAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount</Label><MoneyInput value={invAmount} onChange={setInvAmount} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvOpen(false)}>Cancel</Button>
