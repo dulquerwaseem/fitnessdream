@@ -46,6 +46,11 @@ function SettingsPage() {
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Best-effort auto-purge of records older than 30 days when an admin opens Settings.
+  useEffect(() => {
+    supabase.rpc("purge_expired_soft_deletes" as never).then(() => undefined).catch(() => undefined);
+  }, []);
+
   const { data: gym } = useQuery({
     queryKey: ["gym-settings"],
     queryFn: async () => (await supabase.from("gym_settings").select("*").maybeSingle()).data,
