@@ -119,6 +119,7 @@ function SettingsPage() {
   const [restore, setRestore] = useState<{
     totalInFile: number;
     toAdd: (BackupMember & { phone_normalized: string })[];
+    allValid: (BackupMember & { phone_normalized: string })[];
     toUpdate: FlaggedRow[];
     dupInFile: FlaggedRow[];
     invalid: FlaggedRow[];
