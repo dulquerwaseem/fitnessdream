@@ -815,7 +815,7 @@ function MemberDetail() {
         <DialogContent>
           <DialogHeader><DialogTitle>Record payment</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={payAmount} onChange={e => setPayAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount</Label><MoneyInput value={payAmount} onChange={setPayAmount} /></div>
             <div className="space-y-2">
               <Label>Payment mode</Label>
               <Select value={payMode} onValueChange={(v) => setPayMode(v as any)}>
