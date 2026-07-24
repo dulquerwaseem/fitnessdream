@@ -53,9 +53,22 @@ function BillingPage() {
         title="Billing"
         description="Invoices and payments."
         actions={
-          <Button asChild className="gradient-primary text-primary-foreground">
-            <Link to="/billing/new"><Plus className="h-4 w-4 mr-1" /> New invoice</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={modeFilter} onValueChange={setModeFilter}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Payment method" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All methods</SelectItem>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="upi">UPI</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button asChild className="gradient-primary text-primary-foreground">
+              <Link to="/billing/new"><Plus className="h-4 w-4 mr-1" /> New invoice</Link>
+            </Button>
+          </div>
         }
       />
       {isLoading ? (
