@@ -16,6 +16,7 @@ import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
+import { RecentlyDeleted } from "@/components/recently-deleted";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
