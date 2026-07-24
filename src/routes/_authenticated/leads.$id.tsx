@@ -188,7 +188,18 @@ function LeadDetail() {
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Next follow-up</div>
-              <div>{lead.next_follow_up_at ? fmtDateTime(lead.next_follow_up_at) : "—"}</div>
+              <Input
+                type="datetime-local"
+                defaultValue={lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16) : ""}
+                onBlur={async (e) => {
+                  const v = e.target.value ? new Date(e.target.value).toISOString() : null;
+                  await supabase.from("leads").update({ next_follow_up_at: v }).eq("id", id);
+                  qc.invalidateQueries({ queryKey: ["lead", id] });
+                  qc.invalidateQueries({ queryKey: ["leads-all"] });
+                  toast.success("Follow-up updated");
+                }}
+                className="h-8 text-sm"
+              />
             </div>
             {lead.notes && (
               <div className="pt-2 border-t space-y-1">
