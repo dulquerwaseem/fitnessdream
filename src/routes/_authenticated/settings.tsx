@@ -384,11 +384,16 @@ function SettingsPage() {
                   </details>
                 )}
 
+                <label className="flex items-center gap-2 text-xs mt-2 cursor-pointer">
+                  <input type="checkbox" checked={forceAll} onChange={(e) => setForceAll(e.target.checked)} />
+                  <span>Force insert all valid rows (ignore duplicates — will create duplicate members you can clean up later)</span>
+                </label>
+
                 <div className="flex gap-2 mt-2">
                   <Button size="sm" onClick={doRestore} disabled={restoring} className="gradient-primary text-primary-foreground">
-                    {restoring ? "Restoring…" : `Restore ${restore.toAdd.length} members`}
+                    {restoring ? "Restoring…" : `Restore ${forceAll ? restore.allValid.length : restore.toAdd.length} members`}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setRestore(null)}>Cancel</Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setRestore(null); setForceAll(false); }}>Cancel</Button>
                 </div>
               </AlertDescription>
             </Alert>
