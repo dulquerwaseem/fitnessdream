@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { fmtCurrency, fmtDate, initials } from "@/lib/format";
 import { Plus, Search, Users } from "lucide-react";
 import { z } from "zod";
+import { useDebouncedValue } from "@/hooks/use-debounced";
 
 const searchSchema = z.object({
   status: z.enum(["all", "active", "expiring_soon", "expired", "frozen"]).optional().catch("all"),
@@ -44,16 +45,17 @@ function MembersPage() {
   const navigate = Route.useNavigate();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("expiry");
+  const debouncedQ = useDebouncedValue(q, 300);
 
   const status = (search.status ?? "all") as StatusFilter;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["members-list", status, q, sort],
+    queryKey: ["members-list", status, debouncedQ, sort],
     queryFn: async () => {
       let query = supabase.from("members_with_status").select("*");
       if (status !== "all") query = query.eq("status", status);
-      if (q.trim()) {
-        const term = `%${q.trim()}%`;
+      if (debouncedQ.trim()) {
+        const term = `%${debouncedQ.trim()}%`;
         query = query.or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`);
       }
       switch (sort) {
@@ -66,6 +68,8 @@ function MembersPage() {
       if (error) throw error;
       return data ?? [];
     },
+    placeholderData: (prev) => prev,
+    staleTime: 30_000,
   });
 
   return (
@@ -133,7 +137,7 @@ function MembersPage() {
               <Card className="card-hover">
                 <CardContent className="flex items-center gap-4 p-4">
                   <Avatar className="h-11 w-11">
-                    {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} /> : null}
+                    {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} loading="lazy" decoding="async" /> : null}
                     <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {initials(m.full_name)}
                     </AvatarFallback>
