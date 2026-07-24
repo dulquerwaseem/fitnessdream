@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { toast } from "sonner";
-import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MessageCircle, CheckCircle2, StickyNote, ArrowRight, Trash2 } from "lucide-react";
+import { softDelete } from "@/lib/soft-delete";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 export const Route = createFileRoute("/_authenticated/leads/$id")({
   head: () => ({
@@ -56,6 +58,7 @@ function LeadDetail() {
 
   const [note, setNote] = useState("");
   const [waOpen, setWaOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [tplId, setTplId] = useState("");
   const [waMsg, setWaMsg] = useState("");
   const [showAllTpls, setShowAllTpls] = useState(false);
@@ -168,6 +171,9 @@ function LeadDetail() {
                 <Link to="/members/$id" params={{ id: lead.converted_member_id }}>View member <ArrowRight className="h-4 w-4 ml-1" /></Link>
               </Button>
             )}
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Trash2 className="h-4 w-4 mr-1" /> Delete
+            </Button>
           </div>
         }
       />
@@ -260,6 +266,25 @@ function LeadDetail() {
           </Card>
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this lead?"
+        description={`${lead.full_name} will be moved to Recently Deleted. You can restore them from Settings within 30 days.`}
+        confirmLabel="Delete lead"
+        askReason
+        onConfirm={async (reason) => {
+          try {
+            await softDelete({ table: "leads", id, reason, summary: `Deleted lead ${lead.full_name}` });
+            toast.success("Lead moved to Recently Deleted");
+            qc.invalidateQueries();
+            navigate({ to: "/leads" });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        }}
+      />
     </div>
   );
 }

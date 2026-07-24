@@ -93,7 +93,7 @@ function LeadsPage() {
   const { data: leads, isLoading } = useQuery({
     queryKey: ["leads-all"],
     queryFn: async () => {
-      const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase.from("leads").select("*").is("deleted_at", null).order("created_at", { ascending: false });
       return (data ?? []) as Lead[];
     },
   });

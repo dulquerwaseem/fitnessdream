@@ -16,6 +16,7 @@ import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
+import { RecentlyDeleted } from "@/components/recently-deleted";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -44,6 +45,11 @@ function SettingsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Best-effort auto-purge of records older than 30 days when an admin opens Settings.
+  useEffect(() => {
+    void (async () => { try { await supabase.rpc("purge_expired_soft_deletes" as never); } catch { /* non-admin: ignored */ } })();
+  }, []);
 
   const { data: gym } = useQuery({
     queryKey: ["gym-settings"],
@@ -90,10 +96,10 @@ function SettingsPage() {
   // Backup export
   const exportJson = async () => {
     const [mem, staff, pay, inv, plansAll, gymAll] = await Promise.all([
-      supabase.from("members").select("*"),
-      supabase.from("staff").select("*"),
-      supabase.from("payments").select("*"),
-      supabase.from("invoices").select("*, invoice_items(*)"),
+      supabase.from("members").select("*").is("deleted_at", null),
+      supabase.from("staff").select("*").is("deleted_at", null),
+      supabase.from("payments").select("*").is("deleted_at", null),
+      supabase.from("invoices").select("*, invoice_items(*)").is("deleted_at", null),
       supabase.from("plans").select("*"),
       supabase.from("gym_settings").select("*"),
     ]);
@@ -256,6 +262,7 @@ function SettingsPage() {
           <TabsTrigger value="stages">Lead pipeline</TabsTrigger>
           <TabsTrigger value="lead-templates">Lead templates</TabsTrigger>
           <TabsTrigger value="backup">Backup & restore</TabsTrigger>
+          <TabsTrigger value="trash">Recently deleted</TabsTrigger>
         </TabsList>
 
         <TabsContent value="gym">
@@ -463,6 +470,10 @@ function SettingsPage() {
               </AlertDescription>
             </Alert>
           )}
+        </TabsContent>
+
+        <TabsContent value="trash">
+          <RecentlyDeleted />
         </TabsContent>
       </Tabs>
     </div>

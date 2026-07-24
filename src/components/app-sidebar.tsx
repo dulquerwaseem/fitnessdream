@@ -39,7 +39,7 @@ function useFollowUpDueCount() {
     queryFn: async () => {
       const [stagesRes, leadsRes] = await Promise.all([
         supabase.from("lead_stages").select("id, follow_up_days"),
-        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id"),
+        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id").is("deleted_at", null),
       ]);
       const stages = stagesRes.data ?? [];
       const leads = leadsRes.data ?? [];

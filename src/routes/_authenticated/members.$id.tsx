@@ -21,10 +21,12 @@ import {
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
+import { softDelete } from "@/lib/soft-delete";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
+  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity, Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
@@ -66,11 +68,11 @@ function MemberDetail() {
   });
   const { data: invoices } = useQuery({
     queryKey: ["member-invoices", id],
-    queryFn: async () => (await supabase.from("invoices").select("*").eq("member_id", id).order("issued_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("invoices").select("*").eq("member_id", id).is("deleted_at", null).order("issued_at", { ascending: false })).data ?? [],
   });
   const { data: payments } = useQuery({
     queryKey: ["member-payments", id],
-    queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).order("paid_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("payments").select("*").eq("member_id", id).is("deleted_at", null).order("paid_at", { ascending: false })).data ?? [],
   });
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
@@ -78,7 +80,7 @@ function MemberDetail() {
   });
   const { data: trainers } = useQuery({
     queryKey: ["trainers"],
-    queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("staff").select("id, full_name").is("deleted_at", null).eq("active", true)).data ?? [],
   });
   const { data: ptPackages } = useQuery({
     queryKey: ["pt-packages-active"],
@@ -86,15 +88,15 @@ function MemberDetail() {
   });
   const { data: ptEnrollments } = useQuery({
     queryKey: ["member-pt", id],
-    queryFn: async () => (await supabase.from("pt_enrollments").select("*").eq("member_id", id).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("pt_enrollments").select("*").eq("member_id", id).is("deleted_at", null).order("created_at", { ascending: false })).data ?? [],
   });
   const { data: ptSessions } = useQuery({
     queryKey: ["member-pt-sessions", id],
     queryFn: async () => {
-      const { data: enrolls } = await supabase.from("pt_enrollments").select("id").eq("member_id", id);
+      const { data: enrolls } = await supabase.from("pt_enrollments").select("id").eq("member_id", id).is("deleted_at", null);
       const ids = (enrolls ?? []).map(e => e.id);
       if (!ids.length) return [];
-      return (await supabase.from("pt_sessions").select("*").in("enrollment_id", ids).order("scheduled_at", { ascending: false })).data ?? [];
+      return (await supabase.from("pt_sessions").select("*").in("enrollment_id", ids).is("deleted_at", null).order("scheduled_at", { ascending: false })).data ?? [];
     },
   });
   const { data: messages } = useQuery({
@@ -114,6 +116,7 @@ function MemberDetail() {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const [payOpen, setPayOpen] = useState(false);
   const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
@@ -509,7 +512,9 @@ function MemberDetail() {
               </Button>
               <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
               <Button size="sm" variant="outline" onClick={openMsg}><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
-              
+              <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -898,6 +903,30 @@ function MemberDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this member?"
+        description={`${m?.full_name ?? "This member"} will be moved to Recently Deleted. You can restore them from Settings within 30 days.`}
+        confirmLabel="Delete member"
+        financialAmount={m && Number(m.balance_due) > 0 ? `Outstanding balance: ₹${Number(m.balance_due).toLocaleString("en-IN")}` : null}
+        typeToConfirm={m?.full_name ?? undefined}
+        askReason
+        onConfirm={async (reason) => {
+          try {
+            await softDelete({
+              table: "members", id: id, memberId: id, reason,
+              summary: `Deleted member ${m?.full_name ?? ""}`.trim(),
+            });
+            toast.success("Member moved to Recently Deleted");
+            qc.invalidateQueries();
+            navigate({ to: "/members" });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        }}
+      />
     </div>
   );
 }

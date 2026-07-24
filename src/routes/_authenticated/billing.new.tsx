@@ -24,7 +24,7 @@ function NewInvoicePage() {
   const navigate = useNavigate();
   const { data: members } = useQuery({
     queryKey: ["members-brief"],
-    queryFn: async () => (await supabase.from("members").select("id, full_name, phone").order("full_name")).data ?? [],
+    queryFn: async () => (await supabase.from("members").select("id, full_name, phone").is("deleted_at", null).order("full_name")).data ?? [],
   });
 
   const [memberId, setMemberId] = useState("");

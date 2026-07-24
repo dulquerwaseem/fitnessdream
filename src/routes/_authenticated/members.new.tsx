@@ -36,7 +36,7 @@ function NewMemberPage() {
   });
   const { data: trainers } = useQuery({
     queryKey: ["trainers"],
-    queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+    queryFn: async () => (await supabase.from("staff").select("id, full_name").is("deleted_at", null).eq("active", true)).data ?? [],
   });
   const { data: lead } = useQuery({
     queryKey: ["lead-for-convert", leadId],
