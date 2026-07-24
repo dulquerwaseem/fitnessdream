@@ -523,7 +523,7 @@ function MemberDetail() {
           <TabsTrigger value="membership">Membership</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="pt">Personal Training</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="notes">Notes & Activity</TabsTrigger>
         </TabsList>
