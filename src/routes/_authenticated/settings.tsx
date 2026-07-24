@@ -256,6 +256,7 @@ function SettingsPage() {
           <TabsTrigger value="stages">Lead pipeline</TabsTrigger>
           <TabsTrigger value="lead-templates">Lead templates</TabsTrigger>
           <TabsTrigger value="backup">Backup & restore</TabsTrigger>
+          <TabsTrigger value="trash">Recently deleted</TabsTrigger>
         </TabsList>
 
         <TabsContent value="gym">
