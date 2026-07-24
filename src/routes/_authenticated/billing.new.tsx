@@ -75,8 +75,8 @@ function NewInvoicePage() {
             {lines.map((l, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
                 <Input className="col-span-6" placeholder="Description" value={l.description} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, description: e.target.value} : x))} />
-                <Input className="col-span-2" type="number" placeholder="Qty" value={l.qty} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, qty: Number(e.target.value)} : x))} />
-                <Input className="col-span-3" type="number" placeholder="Price" value={l.unit_price} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, unit_price: Number(e.target.value)} : x))} />
+                <MoneyInput className="col-span-2" placeholder="Qty" value={l.qty} onChange={(v) => setLines(ls => ls.map((x,j) => j===i ? {...x, qty: v} : x))} />
+                <MoneyInput className="col-span-3" placeholder="Price" value={l.unit_price} onChange={(v) => setLines(ls => ls.map((x,j) => j===i ? {...x, unit_price: v} : x))} />
                 <Button size="icon" variant="ghost" className="col-span-1" onClick={() => setLines(ls => ls.filter((_,j) => j!==i))} disabled={lines.length === 1}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
