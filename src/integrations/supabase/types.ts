@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          member_id: string | null
+          metadata: Json | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          member_id?: string | null
+          metadata?: Json | null
+          summary: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          member_id?: string | null
+          metadata?: Json | null
+          summary?: string
+        }
+        Relationships: []
+      }
       gym_settings: {
         Row: {
           address: string | null
@@ -107,6 +146,9 @@ export type Database = {
         Row: {
           amount_paid: number
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           id: string
           issued_at: string
           member_id: string | null
@@ -120,6 +162,9 @@ export type Database = {
         Insert: {
           amount_paid?: number
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           id?: string
           issued_at?: string
           member_id?: string | null
@@ -133,6 +178,9 @@ export type Database = {
         Update: {
           amount_paid?: number
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           id?: string
           issued_at?: string
           member_id?: string | null
@@ -273,6 +321,9 @@ export type Database = {
           converted_member_id: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           email: string | null
           full_name: string
           id: string
@@ -292,6 +343,9 @@ export type Database = {
           converted_member_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           full_name: string
           id?: string
@@ -311,6 +365,9 @@ export type Database = {
           converted_member_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           full_name?: string
           id?: string
@@ -407,6 +464,9 @@ export type Database = {
           amount_paid: number
           balance_due: number
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           dob: string | null
           email: string | null
           emergency_contact: string | null
@@ -431,6 +491,9 @@ export type Database = {
           amount_paid?: number
           balance_due?: number
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null
@@ -455,6 +518,9 @@ export type Database = {
           amount_paid?: number
           balance_due?: number
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null
@@ -541,6 +607,9 @@ export type Database = {
           amount: number
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           id: string
           invoice_id: string | null
           member_id: string | null
@@ -552,6 +621,9 @@ export type Database = {
           amount: number
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           id?: string
           invoice_id?: string | null
           member_id?: string | null
@@ -563,6 +635,9 @@ export type Database = {
           amount?: number
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           id?: string
           invoice_id?: string | null
           member_id?: string | null
@@ -699,6 +774,9 @@ export type Database = {
       pt_enrollments: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           expires_on: string | null
           id: string
           member_id: string
@@ -710,6 +788,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           expires_on?: string | null
           id?: string
           member_id: string
@@ -721,6 +802,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           expires_on?: string | null
           id?: string
           member_id?: string
@@ -795,6 +879,9 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           enrollment_id: string
           id: string
           notes: string | null
@@ -804,6 +891,9 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           enrollment_id: string
           id?: string
           notes?: string | null
@@ -813,6 +903,9 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           enrollment_id?: string
           id?: string
           notes?: string | null
@@ -840,6 +933,9 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
           email: string | null
           full_name: string
           id: string
@@ -854,6 +950,9 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           full_name: string
           id?: string
@@ -868,6 +967,9 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
           email?: string | null
           full_name?: string
           id?: string
@@ -1002,7 +1104,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      purge_expired_soft_deletes: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "staff" | "front_desk"
