@@ -360,8 +360,6 @@ function MemberDetail() {
         }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
         return;
       }
-      // Fallback: upload PDF and share wa.me link
-      let invoiceLink = "";
       const { generateInvoicePdf } = await import("@/lib/pdf");
       const doc = generateInvoicePdf({
         gymName: gym?.name ?? "Fitness Dream",
