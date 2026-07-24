@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate } from "@/lib/format";
-import { Plus, Receipt } from "lucide-react";
+import { printInvoicePdf } from "@/lib/pdf";
+import { Plus, Printer, Receipt } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({
