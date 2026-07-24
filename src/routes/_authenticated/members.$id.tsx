@@ -901,7 +901,7 @@ function MemberDetail() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
-            <Button className="gradient-primary text-primary-foreground" onClick={savePayment}>Save payment</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={() => savePayment()} disabled={paymentBusy}>{paymentBusy ? "Processing…" : "Save payment"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
