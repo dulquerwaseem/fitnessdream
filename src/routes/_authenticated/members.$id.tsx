@@ -859,7 +859,7 @@ function MemberDetail() {
           <div className="grid gap-3">
             <div className="space-y-2">
               <Label>Package</Label>
-              <Select value={ptPkg} onValueChange={(v) => { setPtPkg(v); const p = ptPackages?.find(pk => pk.id === v); if (p) setPtPaid(Number(p.price)); }}>
+              <Select value={ptPkg} onValueChange={(v) => setPtPkg(v)}>
                 <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
                 <SelectContent>{ptPackages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions · {currency}{p.price}</SelectItem>)}</SelectContent>
               </Select>
