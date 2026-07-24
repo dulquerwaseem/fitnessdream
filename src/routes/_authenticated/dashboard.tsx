@@ -197,7 +197,7 @@ function LeadsWidget() {
     queryFn: async () => {
       const [stagesRes, leadsRes] = await Promise.all([
         supabase.from("lead_stages").select("*").order("order_index"),
-        supabase.from("leads").select("id, stage_id, source, last_contacted_at, next_follow_up_at, created_at, converted_member_id, converted_at, full_name, phone"),
+        supabase.from("leads").select("id, stage_id, source, last_contacted_at, next_follow_up_at, created_at, converted_member_id, converted_at, full_name, phone").is("deleted_at", null),
       ]);
       const stages = stagesRes.data ?? [];
       const leads = leadsRes.data ?? [];
