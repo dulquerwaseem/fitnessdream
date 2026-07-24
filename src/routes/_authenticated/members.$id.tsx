@@ -166,12 +166,6 @@ function MemberDetail() {
     qc.invalidateQueries({ queryKey: ["member", id] });
   };
 
-  const quickCheckIn = async () => {
-    const { error } = await supabase.from("attendance").insert({ subject_id: id, subject_type: "member" });
-    if (error) return toast.error(error.message);
-    toast.success("Checked in");
-    qc.invalidateQueries({ queryKey: ["member-att", id] });
-  };
 
   const handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
