@@ -46,6 +46,7 @@ type Template = { id: string; key: string; name: string; body: string };
 
 const sourceLabels: Record<string, string> = {
   walk_in: "Walk-in",
+  phone_inquiry: "Phone Inquiry",
   referral: "Referral",
   instagram: "Instagram",
   google: "Google",
