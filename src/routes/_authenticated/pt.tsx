@@ -71,6 +71,7 @@ function PTPage() {
     setOpen(false);
     qc.invalidateQueries({ queryKey: ["pt-enrollments"] });
   };
+  const [create, createBusy] = useAsyncAction(_create);
 
   const logSession = async (enrollmentId: string, remaining: number, used: number) => {
     if (remaining <= 0) return toast.error("No sessions left");
