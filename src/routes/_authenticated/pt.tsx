@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate, todayISO } from "@/lib/format";
 import { toast } from "sonner";
+import { useAsyncAction } from "@/hooks/use-async-action";
 import { Plus, Dumbbell } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/pt")({
