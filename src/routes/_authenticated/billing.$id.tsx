@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { fmtCurrency, fmtDate, fmtDateTime } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
 import { toast } from "sonner";
-import { useAsyncAction } from "@/hooks/use-async-action";
 import { ArrowLeft, Download, Plus, Printer, Send } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/billing/$id")({
@@ -50,7 +49,7 @@ function InvoiceDetail() {
   const balance = Number(inv.total) - Number(inv.amount_paid);
   const member = inv.members as { full_name?: string; phone?: string; email?: string } | null;
 
-  const _recordPayment = async () => {
+  const recordPayment = async () => {
     if (payAmt <= 0) return toast.error("Enter amount");
     const newPaid = Number(inv.amount_paid) + payAmt;
     const status = newPaid <= 0 ? "unpaid" : newPaid >= Number(inv.total) ? "paid" : "partial";
@@ -67,7 +66,6 @@ function InvoiceDetail() {
     setPayOpen(false); setPayAmt(0);
     qc.invalidateQueries();
   };
-  const [recordPayment, payBusy] = useAsyncAction(_recordPayment);
 
   const items = (inv.invoice_items ?? []) as Array<{ description: string; qty: number; unit_price: number; amount: number }>;
 
@@ -119,7 +117,7 @@ function InvoiceDetail() {
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
-                    <Button className="gradient-primary text-primary-foreground" onClick={() => recordPayment()} disabled={payBusy}>{payBusy ? "Processing…" : "Save"}</Button>
+                    <Button className="gradient-primary text-primary-foreground" onClick={recordPayment}>Save</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
