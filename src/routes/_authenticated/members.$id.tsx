@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,14 +9,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/page-header";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppButton } from "@/components/whatsapp-button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
+import { normalizePhone, renderTemplate, waLink } from "@/lib/phone";
+import { downloadInvoicePdf } from "@/lib/pdf";
 import { toast } from "sonner";
-import { ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
+  CheckCircle2, Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
   head: ({ params }) => ({
@@ -35,6 +44,17 @@ const statusStyles: Record<string, string> = {
   frozen: "bg-muted text-muted-foreground border-border",
 };
 
+function computeStatus(m: any): string {
+  if (!m) return "expired";
+  if (m.frozen_at) return "frozen";
+  const today = todayISO();
+  if (!m.expiry_date) return "expired";
+  if (m.expiry_date < today) return "expired";
+  const soon = new Date(); soon.setDate(soon.getDate() + 7);
+  if (m.expiry_date <= soon.toISOString().slice(0, 10)) return "expiring_soon";
+  return "active";
+}
+
 function MemberDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -42,7 +62,11 @@ function MemberDetail() {
 
   const { data: m, isLoading } = useQuery({
     queryKey: ["member", id],
-    queryFn: async () => (await supabase.from("members_with_status").select("*").eq("id", id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("members").select("*").eq("id", id).maybeSingle()).data,
+  });
+  const { data: invoices } = useQuery({
+    queryKey: ["member-invoices", id],
+    queryFn: async () => (await supabase.from("invoices").select("*").eq("member_id", id).order("issued_at", { ascending: false })).data ?? [],
   });
   const { data: payments } = useQuery({
     queryKey: ["member-payments", id],
@@ -50,19 +74,98 @@ function MemberDetail() {
   });
   const { data: att } = useQuery({
     queryKey: ["member-att", id],
-    queryFn: async () => (await supabase.from("attendance").select("*").eq("subject_id", id).eq("subject_type", "member").order("check_in", { ascending: false }).limit(30)).data ?? [],
+    queryFn: async () => (await supabase.from("attendance").select("*").eq("subject_id", id).eq("subject_type", "member").order("check_in", { ascending: false }).limit(200)).data ?? [],
   });
   const { data: plans } = useQuery({
     queryKey: ["plans-active"],
     queryFn: async () => (await supabase.from("plans").select("*").eq("active", true).order("duration_months")).data ?? [],
   });
+  const { data: trainers } = useQuery({
+    queryKey: ["trainers"],
+    queryFn: async () => (await supabase.from("staff").select("id, full_name").eq("active", true)).data ?? [],
+  });
+  const { data: ptPackages } = useQuery({
+    queryKey: ["pt-packages-active"],
+    queryFn: async () => (await supabase.from("pt_packages").select("*").eq("active", true)).data ?? [],
+  });
+  const { data: ptEnrollments } = useQuery({
+    queryKey: ["member-pt", id],
+    queryFn: async () => (await supabase.from("pt_enrollments").select("*").eq("member_id", id).order("created_at", { ascending: false })).data ?? [],
+  });
+  const { data: ptSessions } = useQuery({
+    queryKey: ["member-pt-sessions", id],
+    queryFn: async () => {
+      const { data: enrolls } = await supabase.from("pt_enrollments").select("id").eq("member_id", id);
+      const ids = (enrolls ?? []).map(e => e.id);
+      if (!ids.length) return [];
+      return (await supabase.from("pt_sessions").select("*").in("enrollment_id", ids).order("scheduled_at", { ascending: false })).data ?? [];
+    },
+  });
+  const { data: messages } = useQuery({
+    queryKey: ["member-messages", id],
+    queryFn: async () => (await supabase.from("messages_log").select("*").eq("member_id", id).order("sent_at", { ascending: false })).data ?? [],
+  });
+  const { data: gym } = useQuery({
+    queryKey: ["gym-settings"],
+    queryFn: async () => (await supabase.from("gym_settings").select("*").eq("id", 1).maybeSingle()).data,
+  });
 
+  // Dialog states
   const [renewOpen, setRenewOpen] = useState(false);
   const [renewPlan, setRenewPlan] = useState("");
   const [renewPaid, setRenewPaid] = useState(0);
+  const [renewMode, setRenewMode] = useState<"today" | "extend">("today");
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
+
+  const [payOpen, setPayOpen] = useState(false);
+  const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState(0);
+  const [payMode, setPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer">("cash");
+  const [payDate, setPayDate] = useState<string>(todayISO());
+
+  const [invOpen, setInvOpen] = useState(false);
+  const [invDesc, setInvDesc] = useState("");
+  const [invAmount, setInvAmount] = useState(0);
+
+  const [ptOpen, setPtOpen] = useState(false);
+  const [ptPkg, setPtPkg] = useState("");
+  const [ptTrainer, setPtTrainer] = useState("");
+  const [ptPaid, setPtPaid] = useState(0);
+
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgTemplateKey, setMsgTemplateKey] = useState<string>("");
+  const [msgBody, setMsgBody] = useState("");
+
+  const [noteDraft, setNoteDraft] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  const status = useMemo(() => computeStatus(m), [m]);
+  const currency = gym?.currency_symbol ?? "₹";
+  const templates: Record<string, string> = (gym?.templates as any) ?? {};
+
+  const activity = useMemo(() => {
+    const events: Array<{ at: string; text: string; icon?: string }> = [];
+    if (m?.created_at) events.push({ at: m.created_at, text: `Joined Fitness Dream` });
+    if (m?.frozen_at) events.push({ at: m.frozen_at, text: `Membership frozen` });
+    (payments ?? []).forEach(p => events.push({ at: p.paid_at, text: `Payment received: ${fmtCurrency(p.amount, currency)} (${p.mode})` }));
+    (invoices ?? []).forEach(i => events.push({ at: i.issued_at, text: `Invoice ${i.number} issued: ${fmtCurrency(i.total, currency)} (${i.status})` }));
+    (ptEnrollments ?? []).forEach(e => events.push({ at: e.created_at, text: `PT package enrolled (${e.sessions_total} sessions)` }));
+    (messages ?? []).forEach(x => events.push({ at: x.sent_at, text: `WhatsApp sent${x.template_key ? ` · ${x.template_key}` : ""}` }));
+    return events.sort((a, b) => (a.at < b.at ? 1 : -1));
+  }, [m, payments, invoices, ptEnrollments, messages, currency]);
 
   if (isLoading) return <div><Skeleton className="h-40 rounded-xl" /></div>;
   if (!m) return <div className="text-center py-16 text-muted-foreground">Member not found. <Link to="/members" className="text-primary story-link">Back to list</Link></div>;
+
+  const balanceDue = Number(m.balance_due ?? 0);
+  const visitsThisMonth = (att ?? []).filter(a => {
+    const d = new Date(a.check_in);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const lastVisit = att?.[0]?.check_in;
 
   const freezeToggle = async () => {
     const isFrozen = !!m.frozen_at;
@@ -82,8 +185,9 @@ function MemberDetail() {
   const handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
     if (!plan) return toast.error("Select a plan");
-    const start = todayISO();
-    const expiry = addMonthsISO(start, plan.duration_months);
+    const baseDate = renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
+    const expiry = addMonthsISO(baseDate, plan.duration_months);
+    const start = renewMode === "extend" ? m.start_date : todayISO();
     const total = Number(plan.price);
     const paid = Number(renewPaid);
     const balance = Math.max(0, total - paid);
@@ -100,10 +204,7 @@ function MemberDetail() {
     }).eq("id", id);
 
     const { data: inv } = await supabase.from("invoices").insert({
-      member_id: id,
-      subtotal: total,
-      total,
-      amount_paid: paid,
+      member_id: id, subtotal: total, total, amount_paid: paid,
       status: balance === 0 ? "paid" : paid > 0 ? "partial" : "unpaid",
       notes: `Renewal: ${plan.name}`,
     }).select("id").single();
@@ -120,123 +221,673 @@ function MemberDetail() {
     qc.invalidateQueries();
   };
 
+  const openEdit = () => {
+    setEditForm({
+      full_name: m.full_name ?? "",
+      phone: m.phone ?? "",
+      email: m.email ?? "",
+      address: m.address ?? "",
+      dob: m.dob ?? "",
+      emergency_contact: m.emergency_contact ?? "",
+    });
+    setEditOpen(true);
+  };
+  const saveEdit = async () => {
+    if (!editForm.full_name.trim() || !editForm.phone.trim()) return toast.error("Name and phone are required");
+    const { error } = await supabase.from("members").update({
+      full_name: editForm.full_name.trim(),
+      phone: editForm.phone.trim(),
+      phone_normalized: normalizePhone(editForm.phone),
+      email: editForm.email || null,
+      address: editForm.address || null,
+      dob: editForm.dob || null,
+      emergency_contact: editForm.emergency_contact || null,
+    }).eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Details updated");
+    setEditOpen(false);
+    qc.invalidateQueries({ queryKey: ["member", id] });
+  };
+
+  const openPayForInvoice = (inv: any) => {
+    setPayInvoiceId(inv.id);
+    setPayAmount(Math.max(0, Number(inv.total) - Number(inv.amount_paid)));
+    setPayMode("cash");
+    setPayDate(todayISO());
+    setPayOpen(true);
+  };
+  const openPayGeneric = () => {
+    setPayInvoiceId(null);
+    setPayAmount(balanceDue);
+    setPayMode("cash");
+    setPayDate(todayISO());
+    setPayOpen(true);
+  };
+  const savePayment = async () => {
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) return toast.error("Enter an amount");
+    const paidAt = new Date(payDate + "T" + new Date().toISOString().slice(11, 19)).toISOString();
+    const { error } = await supabase.from("payments").insert({
+      member_id: id, invoice_id: payInvoiceId, amount, mode: payMode, paid_at: paidAt,
+    });
+    if (error) return toast.error(error.message);
+
+    if (payInvoiceId) {
+      const inv = invoices?.find(i => i.id === payInvoiceId);
+      if (inv) {
+        const newPaid = Number(inv.amount_paid) + amount;
+        const status = newPaid >= Number(inv.total) ? "paid" : newPaid > 0 ? "partial" : "unpaid";
+        await supabase.from("invoices").update({ amount_paid: newPaid, status }).eq("id", inv.id);
+      }
+    }
+    // recalc member balance
+    const newMemberPaid = Number(m.amount_paid ?? 0) + amount;
+    const newBalance = Math.max(0, Number(m.total_fee ?? 0) - newMemberPaid);
+    await supabase.from("members").update({ amount_paid: newMemberPaid, balance_due: newBalance }).eq("id", id);
+
+    toast.success("Payment recorded");
+    setPayOpen(false);
+    qc.invalidateQueries();
+  };
+
+  const createInvoice = async () => {
+    if (!invDesc.trim() || !invAmount) return toast.error("Description and amount required");
+    const total = Number(invAmount);
+    const { data: inv } = await supabase.from("invoices").insert({
+      member_id: id, subtotal: total, total, amount_paid: 0, status: "unpaid", notes: invDesc.trim(),
+    }).select("id").single();
+    if (inv) {
+      await supabase.from("invoice_items").insert({
+        invoice_id: inv.id, description: invDesc.trim(), qty: 1, unit_price: total, amount: total,
+      });
+    }
+    await supabase.from("members").update({
+      total_fee: Number(m.total_fee ?? 0) + total,
+      balance_due: Number(m.balance_due ?? 0) + total,
+    }).eq("id", id);
+    toast.success("Invoice created");
+    setInvOpen(false); setInvDesc(""); setInvAmount(0);
+    qc.invalidateQueries();
+  };
+
+  const downloadInvoice = async (invId: string) => {
+    const { data: inv } = await supabase.from("invoices").select("*").eq("id", invId).single();
+    const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", invId);
+    if (!inv) return;
+    downloadInvoicePdf({
+      invoice: inv as any,
+      items: (items ?? []) as any,
+      member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
+      gym: gym as any,
+    });
+  };
+
+  const shareInvoice = (inv: any) => {
+    const tpl = templates.invoice ?? "Hi {{name}}, your invoice #{{invoice_number}} for {{currency}}{{amount}} at {{gym}} is ready.";
+    const msg = renderTemplate(tpl, {
+      name: m.full_name ?? "",
+      invoice_number: inv.number,
+      currency,
+      amount: Number(inv.total).toLocaleString("en-IN"),
+      gym: gym?.name ?? "Fitness Dream",
+    });
+    window.open(waLink(m.phone ?? "", msg, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener");
+    supabase.from("messages_log").insert({
+      member_id: id, channel: "whatsapp", template_key: "invoice", body: msg,
+    }).then(() => qc.invalidateQueries({ queryKey: ["member-messages", id] }));
+  };
+
+  const addPtPackage = async () => {
+    const pkg = ptPackages?.find(p => p.id === ptPkg);
+    if (!pkg) return toast.error("Select a package");
+    const expiresOn = new Date();
+    expiresOn.setDate(expiresOn.getDate() + Number(pkg.validity_days ?? 60));
+    await supabase.from("pt_enrollments").insert({
+      member_id: id,
+      package_id: pkg.id,
+      trainer_id: ptTrainer || null,
+      sessions_total: pkg.sessions,
+      sessions_used: 0,
+      starts_on: todayISO(),
+      expires_on: expiresOn.toISOString().slice(0, 10),
+    });
+    const total = Number(pkg.price);
+    const paid = Number(ptPaid);
+    const { data: inv } = await supabase.from("invoices").insert({
+      member_id: id, subtotal: total, total, amount_paid: paid,
+      status: paid >= total ? "paid" : paid > 0 ? "partial" : "unpaid",
+      notes: `PT: ${pkg.name}`,
+    }).select("id").single();
+    if (inv) {
+      await supabase.from("invoice_items").insert({
+        invoice_id: inv.id, description: `PT — ${pkg.name}`, qty: 1, unit_price: total, amount: total,
+      });
+      if (paid > 0) await supabase.from("payments").insert({ member_id: id, invoice_id: inv.id, amount: paid, mode: "cash" });
+    }
+    toast.success("PT package added");
+    setPtOpen(false); setPtPkg(""); setPtTrainer(""); setPtPaid(0);
+    qc.invalidateQueries();
+  };
+
+  const logPtSession = async (enrollId: string, trainerId: string | null) => {
+    await supabase.from("pt_sessions").insert({
+      enrollment_id: enrollId,
+      trainer_id: trainerId,
+      scheduled_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    });
+    const enr = ptEnrollments?.find(e => e.id === enrollId);
+    if (enr) {
+      await supabase.from("pt_enrollments").update({ sessions_used: (enr.sessions_used ?? 0) + 1 }).eq("id", enrollId);
+    }
+    toast.success("Session logged");
+    qc.invalidateQueries();
+  };
+
+  const openMsg = () => {
+    setMsgTemplateKey("");
+    setMsgBody(`Hi ${m.full_name}, this is ${gym?.name ?? "Fitness Dream"}.`);
+    setMsgOpen(true);
+  };
+  const applyTemplate = (key: string) => {
+    setMsgTemplateKey(key);
+    const tpl = templates[key] ?? "";
+    const body = renderTemplate(tpl, {
+      name: m.full_name ?? "",
+      plan: m.plan_type ?? "",
+      expiry: m.expiry_date ? fmtDate(m.expiry_date) : "",
+      balance: Number(m.balance_due ?? 0).toLocaleString("en-IN"),
+      currency,
+      gym: gym?.name ?? "Fitness Dream",
+      invoice_number: "",
+      amount: "",
+    });
+    setMsgBody(body);
+  };
+  const sendMsg = async () => {
+    if (!msgBody.trim()) return toast.error("Message body is empty");
+    window.open(waLink(m.phone ?? "", msgBody, gym?.whatsapp_country_code ?? "91"), "_blank", "noopener");
+    await supabase.from("messages_log").insert({
+      member_id: id, channel: "whatsapp", template_key: msgTemplateKey || null, body: msgBody,
+    });
+    toast.success("Logged");
+    setMsgOpen(false);
+    qc.invalidateQueries({ queryKey: ["member-messages", id] });
+  };
+
+  const addNote = async () => {
+    if (!noteDraft.trim()) return;
+    setSavingNote(true);
+    const existing = m.notes ? `${m.notes}\n` : "";
+    const stamp = new Date().toLocaleString();
+    const updated = `${existing}[${stamp}] ${noteDraft.trim()}`;
+    await supabase.from("members").update({ notes: updated }).eq("id", id);
+    setNoteDraft("");
+    setSavingNote(false);
+    qc.invalidateQueries({ queryKey: ["member", id] });
+  };
+
   return (
     <div>
       <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/members" })} className="mb-2 -ml-2">
         <ArrowLeft className="h-4 w-4 mr-1" /> Back
       </Button>
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardContent className="p-6 text-center">
-            <Avatar className="h-24 w-24 mx-auto mb-4">
+
+      {/* HEADER */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <Avatar className="h-20 w-20">
               {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} /> : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-2xl font-display font-bold">{initials(m.full_name)}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary text-xl font-display font-bold">{initials(m.full_name)}</AvatarFallback>
             </Avatar>
-            <h2 className="text-xl font-display font-bold">{m.full_name}</h2>
-            <Badge variant="outline" className={`mt-2 capitalize ${statusStyles[m.status!] ?? ""}`}>
-              {String(m.status).replace("_", " ")}
-            </Badge>
-
-            <div className="mt-6 space-y-2 text-left text-sm">
-              <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" /> {m.phone}</div>
-              {m.email ? <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" /> {m.email}</div> : null}
-              {m.address ? <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground shrink-0" /> <span className="truncate">{m.address}</span></div> : null}
-              {m.dob ? <div className="flex items-center gap-2"><Cake className="h-4 w-4 text-muted-foreground" /> {fmtDate(m.dob)}</div> : null}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-display font-bold truncate">{m.full_name}</h1>
+                <Badge variant="outline" className={`capitalize ${statusStyles[status]}`}>
+                  {status.replace("_", " ")}
+                </Badge>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {m.phone}</span>
+                {m.email ? <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {m.email}</span> : null}
+                {m.address ? <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {m.address}</span> : null}
+                {m.dob ? <span className="flex items-center gap-1"><Cake className="h-3.5 w-3.5" /> {fmtDate(m.dob)}</span> : null}
+              </div>
             </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-2">
-              <WhatsAppButton phone={m.phone!} memberId={m.id!} message={`Hi ${m.full_name}, this is Fitness Dream.`} />
-              <Button size="sm" variant="outline" onClick={quickCheckIn}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Check-in</Button>
-              <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" className="gradient-primary text-primary-foreground col-span-2"><RefreshCcw className="h-3.5 w-3.5 mr-1" /> Renew</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader><DialogTitle>Renew membership</DialogTitle></DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Plan</Label>
-                      <Select value={renewPlan} onValueChange={(v) => { setRenewPlan(v); const p = plans?.find(pl => pl.id === v); if (p) setRenewPaid(Number(p.price)); }}>
-                        <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
-                        <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — ₹{p.price}</SelectItem>)}</SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={renewPaid} onChange={(e) => setRenewPaid(Number(e.target.value))} /></div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
-                    <Button className="gradient-primary text-primary-foreground" onClick={handleRenew}>Renew</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              <Button size="sm" variant="outline" onClick={freezeToggle} className="col-span-2">
-                {m.frozen_at ? <><Play className="h-3.5 w-3.5 mr-1" /> Resume</> : <><Snowflake className="h-3.5 w-3.5 mr-1" /> Freeze</>}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => { setRenewPlan(""); setRenewPaid(0); setRenewMode("today"); setRenewOpen(true); }}>
+                <RefreshCcw className="h-3.5 w-3.5 mr-1" /> Renew
               </Button>
+              <Button size="sm" variant="outline" onClick={openPayGeneric}><Plus className="h-3.5 w-3.5 mr-1" /> Add payment</Button>
+              <Button size="sm" variant="outline" onClick={freezeToggle}>
+                {m.frozen_at ? <><Play className="h-3.5 w-3.5 mr-1" /> Unfreeze</> : <><Snowflake className="h-3.5 w-3.5 mr-1" /> Freeze</>}
+              </Button>
+              <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+              <Button size="sm" variant="outline" onClick={openMsg}><MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+              <Button size="sm" variant="outline" onClick={quickCheckIn}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Check-in</Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="lg:col-span-2 space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Plan</div><div className="font-semibold">{m.plan_type ?? "—"}</div></CardContent></Card>
-            <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Expiry</div><div className="font-semibold">{fmtDate(m.expiry_date)}</div></CardContent></Card>
-            <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Total fee</div><div className="font-semibold">{fmtCurrency(m.total_fee)}</div></CardContent></Card>
-            <Card><CardContent className="p-4"><div className="text-xs text-muted-foreground">Balance due</div><div className={`font-semibold ${Number(m.balance_due) > 0 ? "text-destructive" : "text-success"}`}>{fmtCurrency(m.balance_due)}</div></CardContent></Card>
           </div>
+        </CardContent>
+      </Card>
 
-          <Tabs defaultValue="payments">
-            <TabsList>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="attendance">Attendance</TabsTrigger>
-              <TabsTrigger value="notes">Notes</TabsTrigger>
-            </TabsList>
-            <TabsContent value="payments">
-              <Card>
-                <CardHeader><CardTitle className="text-base">Payment history</CardTitle></CardHeader>
-                <CardContent className="p-0">
-                  {(payments?.length ?? 0) === 0 ? (
-                    <div className="p-6 text-center text-sm text-muted-foreground">No payments yet.</div>
-                  ) : (
-                    <div className="divide-y">
-                      {payments!.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between p-4">
-                          <div>
-                            <div className="font-medium">{fmtCurrency(p.amount)}</div>
-                            <div className="text-xs text-muted-foreground">{fmtDateTime(p.paid_at)} · {p.mode}</div>
+      <Tabs defaultValue="membership">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="membership">Membership</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="pt">Personal Training</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="notes">Notes & Activity</TabsTrigger>
+        </TabsList>
+
+        {/* MEMBERSHIP */}
+        <TabsContent value="membership" className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Stat label="Plan" value={m.plan_type ?? "—"} />
+            <Stat label="Start" value={fmtDate(m.start_date)} />
+            <Stat label="Expiry" value={fmtDate(m.expiry_date)} />
+            <Stat label="Total fee" value={fmtCurrency(m.total_fee, currency)} />
+            <Stat label="Amount paid" value={fmtCurrency(m.amount_paid, currency)} />
+            <Stat label="Balance due" value={fmtCurrency(m.balance_due, currency)} tone={balanceDue > 0 ? "danger" : "success"} />
+          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Membership history</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(invoices?.filter(i => (i.notes ?? "").toLowerCase().includes("renewal") || (i.notes ?? "").toLowerCase().includes("membership")).length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No membership records yet.</div>
+              ) : (
+                <div className="divide-y">
+                  {invoices!.filter(i => (i.notes ?? "").toLowerCase().includes("renewal") || (i.notes ?? "").toLowerCase().includes("membership")).map(i => (
+                    <div key={i.id} className="flex items-center justify-between p-4">
+                      <div>
+                        <div className="font-medium">{i.notes}</div>
+                        <div className="text-xs text-muted-foreground">{fmtDateTime(i.issued_at)} · Invoice {i.number}</div>
+                      </div>
+                      <div className="text-sm font-medium">{fmtCurrency(i.total, currency)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* BILLING */}
+        <TabsContent value="billing" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Invoices</CardTitle>
+              <Button size="sm" onClick={() => setInvOpen(true)}><Plus className="h-3.5 w-3.5 mr-1" /> Create invoice</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(invoices?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No invoices yet.</div>
+              ) : (
+                <div className="divide-y">
+                  {invoices!.map(i => {
+                    const due = Math.max(0, Number(i.total) - Number(i.amount_paid));
+                    return (
+                      <div key={i.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium">#{i.number}</span>
+                            <Badge variant="outline" className={
+                              i.status === "paid" ? "bg-success/15 text-success border-success/30" :
+                              i.status === "partial" ? "bg-warning/15 text-warning border-warning/30" :
+                              "bg-destructive/10 text-destructive border-destructive/30"
+                            }>{i.status}</Badge>
                           </div>
-                          <Badge variant="outline">Paid</Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {fmtDate(i.issued_at)} · Total {fmtCurrency(i.total, currency)} · Paid {fmtCurrency(i.amount_paid, currency)}{due > 0 ? ` · Due ${fmtCurrency(due, currency)}` : ""}
+                          </div>
+                          {i.notes ? <div className="text-xs mt-1">{i.notes}</div> : null}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="attendance">
-              <Card>
-                <CardHeader><CardTitle className="text-base">Recent check-ins</CardTitle></CardHeader>
-                <CardContent className="p-0">
-                  {(att?.length ?? 0) === 0 ? (
-                    <div className="p-6 text-center text-sm text-muted-foreground">No check-ins recorded.</div>
-                  ) : (
-                    <div className="divide-y">
-                      {att!.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between p-4">
-                          <div className="text-sm">{fmtDateTime(a.check_in)}</div>
-                          {a.check_out ? <Badge variant="outline">Out {fmtDateTime(a.check_out)}</Badge> : <Badge className="bg-success/15 text-success border-success/30" variant="outline">In</Badge>}
+                        <div className="flex flex-wrap gap-2">
+                          {due > 0 ? <Button size="sm" variant="outline" onClick={() => openPayForInvoice(i)}>Record payment</Button> : null}
+                          <Button size="sm" variant="outline" onClick={() => shareInvoice(i)}><Send className="h-3.5 w-3.5 mr-1" /> WhatsApp</Button>
+                          <Button size="sm" variant="outline" onClick={() => downloadInvoice(i.id)}><Download className="h-3.5 w-3.5 mr-1" /> PDF</Button>
                         </div>
-                      ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Payment history</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {(payments?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No payments yet.</div>
+              ) : (
+                <div className="divide-y">
+                  {payments!.map(p => (
+                    <div key={p.id} className="flex items-center justify-between p-4">
+                      <div>
+                        <div className="font-medium">{fmtCurrency(p.amount, currency)}</div>
+                        <div className="text-xs text-muted-foreground">{fmtDateTime(p.paid_at)} · {p.mode}</div>
+                      </div>
+                      <Badge variant="outline">Paid</Badge>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="notes">
-              <Card><CardContent className="p-6 text-sm whitespace-pre-wrap min-h-[80px]">{m.notes || <span className="text-muted-foreground">No notes.</span>}</CardContent></Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PT */}
+        <TabsContent value="pt" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">PT packages</CardTitle>
+              <Button size="sm" onClick={() => setPtOpen(true)}><Plus className="h-3.5 w-3.5 mr-1" /> Add PT package</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(ptEnrollments?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No PT packages.</div>
+              ) : (
+                <div className="divide-y">
+                  {ptEnrollments!.map(e => {
+                    const trainerName = trainers?.find(t => t.id === e.trainer_id)?.full_name ?? "—";
+                    const remaining = Math.max(0, (e.sessions_total ?? 0) - (e.sessions_used ?? 0));
+                    const pct = e.sessions_total ? Math.round(((e.sessions_used ?? 0) / e.sessions_total) * 100) : 0;
+                    return (
+                      <div key={e.id} className="p-4 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <div className="font-medium">Trainer: {trainerName}</div>
+                            <div className="text-xs text-muted-foreground">Starts {fmtDate(e.starts_on)} · Expires {fmtDate(e.expires_on)}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{e.sessions_used ?? 0}/{e.sessions_total} used · {remaining} left</span>
+                            <Button size="sm" variant="outline" disabled={remaining === 0} onClick={() => logPtSession(e.id, e.trainer_id)}>Mark session done</Button>
+                          </div>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full gradient-primary" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Session log</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {(ptSessions?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No sessions logged.</div>
+              ) : (
+                <div className="divide-y">
+                  {ptSessions!.map(s => (
+                    <div key={s.id} className="flex items-center justify-between p-4 text-sm">
+                      <span>{fmtDateTime(s.scheduled_at)}</span>
+                      {s.completed_at ? <Badge className="bg-success/15 text-success border-success/30" variant="outline">Completed</Badge> : <Badge variant="outline">Scheduled</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ATTENDANCE */}
+        <TabsContent value="attendance" className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <Stat label="Visits this month" value={String(visitsThisMonth)} />
+            <Stat label="Last visit" value={lastVisit ? fmtDateTime(lastVisit) : "—"} />
+            <Stat label="Total recorded" value={String(att?.length ?? 0)} />
+          </div>
+          <Card>
+            <CardHeader><CardTitle className="text-base">Check-in history</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {(att?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No check-ins recorded.</div>
+              ) : (
+                <div className="divide-y max-h-[500px] overflow-auto">
+                  {att!.map(a => (
+                    <div key={a.id} className="flex items-center justify-between p-4">
+                      <div className="text-sm">{fmtDateTime(a.check_in)}</div>
+                      {a.check_out ? <Badge variant="outline">Out {fmtDateTime(a.check_out)}</Badge> : <Badge className="bg-success/15 text-success border-success/30" variant="outline">In</Badge>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* MESSAGES */}
+        <TabsContent value="messages" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">WhatsApp history</CardTitle>
+              <Button size="sm" onClick={openMsg}><MessageCircle className="h-3.5 w-3.5 mr-1" /> Send message</Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              {(messages?.length ?? 0) === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No messages sent yet.</div>
+              ) : (
+                <div className="divide-y">
+                  {messages!.map(x => (
+                    <div key={x.id} className="p-4">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        <span>{fmtDateTime(x.sent_at)}</span>
+                        {x.template_key ? <Badge variant="outline" className="text-xs">{x.template_key}</Badge> : null}
+                        <Badge variant="outline" className="text-xs capitalize">{x.channel}</Badge>
+                      </div>
+                      <div className="text-sm whitespace-pre-wrap">{x.body}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* NOTES & ACTIVITY */}
+        <TabsContent value="notes" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Notes</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {m.notes ? (
+                <pre className="text-sm whitespace-pre-wrap font-sans bg-muted/40 p-3 rounded-md">{m.notes}</pre>
+              ) : (
+                <div className="text-sm text-muted-foreground">No notes yet.</div>
+              )}
+              <div className="flex gap-2">
+                <Textarea value={noteDraft} onChange={e => setNoteDraft(e.target.value)} placeholder="Add a note (injury info, preferences…)" />
+                <Button onClick={addNote} disabled={savingNote || !noteDraft.trim()}>Add</Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4" /> Activity timeline</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {activity.length === 0 ? (
+                <div className="p-6 text-center text-sm text-muted-foreground">No activity yet.</div>
+              ) : (
+                <div className="divide-y max-h-[500px] overflow-auto">
+                  {activity.map((e, i) => (
+                    <div key={i} className="flex items-start gap-3 p-4">
+                      <div className="h-2 w-2 rounded-full bg-primary mt-2 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm">{e.text}</div>
+                        <div className="text-xs text-muted-foreground">{fmtDateTime(e.at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Renew Dialog */}
+      <Dialog open={renewOpen} onOpenChange={setRenewOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Renew membership</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Plan</Label>
+              <Select value={renewPlan} onValueChange={(v) => { setRenewPlan(v); const p = plans?.find(pl => pl.id === v); if (p) setRenewPaid(Number(p.price)); }}>
+                <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
+                <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {currency}{p.price}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Start from</Label>
+              <Select value={renewMode} onValueChange={(v) => setRenewMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today ({fmtDate(todayISO())})</SelectItem>
+                  <SelectItem value="extend">Extend from current expiry ({fmtDate(m.expiry_date)})</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={renewPaid} onChange={e => setRenewPaid(Number(e.target.value))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={handleRenew}>Renew</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit member details</DialogTitle></DialogHeader>
+          {editForm && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2"><Label>Full name</Label><Input value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Email</Label><Input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
+              <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Input value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Date of birth</Label><Input type="date" value={editForm.dob ?? ""} onChange={e => setEditForm({ ...editForm, dob: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Emergency contact</Label><Input value={editForm.emergency_contact} onChange={e => setEditForm({ ...editForm, emergency_contact: e.target.value })} /></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={saveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog */}
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Record payment</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={payAmount} onChange={e => setPayAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2">
+              <Label>Payment mode</Label>
+              <Select value={payMode} onValueChange={(v) => setPayMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Date</Label><Input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={savePayment}>Save payment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ad-hoc Invoice Dialog */}
+      <Dialog open={invOpen} onOpenChange={setInvOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Create invoice</DialogTitle><DialogDescription>Ad-hoc charge (late fee, merchandise, etc.)</DialogDescription></DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-2"><Label>Description</Label><Input value={invDesc} onChange={e => setInvDesc(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={invAmount} onChange={e => setInvAmount(Number(e.target.value))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInvOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={createInvoice}>Create</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* PT Add Dialog */}
+      <Dialog open={ptOpen} onOpenChange={setPtOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add PT package</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-2">
+              <Label>Package</Label>
+              <Select value={ptPkg} onValueChange={(v) => { setPtPkg(v); const p = ptPackages?.find(pk => pk.id === v); if (p) setPtPaid(Number(p.price)); }}>
+                <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
+                <SelectContent>{ptPackages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions · {currency}{p.price}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Trainer</Label>
+              <Select value={ptTrainer} onValueChange={setPtTrainer}>
+                <SelectTrigger><SelectValue placeholder="Assign trainer" /></SelectTrigger>
+                <SelectContent>{trainers?.map(t => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={ptPaid} onChange={e => setPtPaid(Number(e.target.value))} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={addPtPackage}>Add</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Message Dialog */}
+      <Dialog open={msgOpen} onOpenChange={setMsgOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Send WhatsApp message</DialogTitle></DialogHeader>
+          <div className="grid gap-3">
+            <div className="space-y-2">
+              <Label>Template</Label>
+              <Select value={msgTemplateKey} onValueChange={applyTemplate}>
+                <SelectTrigger><SelectValue placeholder="Pick a template (optional)" /></SelectTrigger>
+                <SelectContent>
+                  {Object.keys(templates).map(k => (
+                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2"><Label>Message</Label><Textarea rows={6} value={msgBody} onChange={e => setMsgBody(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMsgOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={sendMsg}><Send className="h-3.5 w-3.5 mr-1" /> Open WhatsApp</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string; tone?: "success" | "danger" }) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={`font-semibold ${tone === "danger" ? "text-destructive" : tone === "success" ? "text-success" : ""}`}>{value}</div>
+      </CardContent>
+    </Card>
   );
 }

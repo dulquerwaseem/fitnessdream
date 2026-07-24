@@ -18,7 +18,7 @@ const searchSchema = z.object({
   status: z.enum(["all", "active", "expiring_soon", "expired", "frozen"]).optional().catch("all"),
 });
 
-export const Route = createFileRoute("/_authenticated/members")({
+export const Route = createFileRoute("/_authenticated/members/")({
   validateSearch: (s) => searchSchema.parse(s),
   head: () => ({
     meta: [
