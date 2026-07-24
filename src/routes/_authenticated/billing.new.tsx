@@ -31,6 +31,7 @@ function NewInvoicePage() {
   const [memberId, setMemberId] = useState("");
   const [lines, setLines] = useState<Line[]>([{ description: "Membership", qty: 1, unit_price: 0 }]);
   const [amountPaid, setAmountPaid] = useState(0);
+  const [payMode, setPayMode] = useState<"cash" | "upi" | "card" | "bank_transfer" | "other">("cash");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -50,7 +51,7 @@ function NewInvoicePage() {
       lines.map(l => ({ invoice_id: inv.id, description: l.description, qty: l.qty, unit_price: l.unit_price, amount: l.qty * l.unit_price }))
     );
     if (amountPaid > 0) {
-      await supabase.from("payments").insert({ member_id: memberId || null, invoice_id: inv.id, amount: amountPaid, mode: "cash" });
+      await supabase.from("payments").insert({ member_id: memberId || null, invoice_id: inv.id, amount: amountPaid, mode: payMode });
     }
     toast.success("Invoice created");
     navigate({ to: "/billing/$id", params: { id: inv.id } });
@@ -92,7 +93,22 @@ function NewInvoicePage() {
             <span className="text-xl font-display font-bold">{fmtCurrency(subtotal)}</span>
           </div>
 
-          <div className="space-y-2"><Label>Amount paid now</Label><MoneyInput value={amountPaid} onChange={setAmountPaid} /></div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2"><Label>Amount paid now</Label><MoneyInput value={amountPaid} onChange={setAmountPaid} /></div>
+            <div className="space-y-2">
+              <Label>Payment method</Label>
+              <Select value={payMode} onValueChange={(v) => setPayMode(v as typeof payMode)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="space-y-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </CardContent>
       </Card>

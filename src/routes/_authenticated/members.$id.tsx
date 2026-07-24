@@ -112,8 +112,10 @@ function MemberDetail() {
   // Dialog states
   const [renewOpen, setRenewOpen] = useState(false);
   const [renewPlan, setRenewPlan] = useState("");
+  const [renewTotal, setRenewTotal] = useState(0);
   const [renewPaid, setRenewPaid] = useState(0);
   const [renewMode, setRenewMode] = useState<"today" | "extend">("today");
+  const [renewPayMode, setRenewPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer" | "other">("cash");
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
@@ -122,7 +124,7 @@ function MemberDetail() {
   const [payOpen, setPayOpen] = useState(false);
   const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState(0);
-  const [payMode, setPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer">("cash");
+  const [payMode, setPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer" | "other">("cash");
   const [payDate, setPayDate] = useState<string>(todayISO());
 
   const [invOpen, setInvOpen] = useState(false);
@@ -132,7 +134,9 @@ function MemberDetail() {
   const [ptOpen, setPtOpen] = useState(false);
   const [ptPkg, setPtPkg] = useState("");
   const [ptTrainer, setPtTrainer] = useState("");
+  const [ptTotal, setPtTotal] = useState(0);
   const [ptPaid, setPtPaid] = useState(0);
+  const [ptPayMode, setPtPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer" | "other">("cash");
 
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgTemplateKey, setMsgTemplateKey] = useState<string>("");
@@ -177,8 +181,9 @@ function MemberDetail() {
     const baseDate = renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
     const expiry = addMonthsISO(baseDate, plan.duration_months);
     const start = renewMode === "extend" ? m.start_date : todayISO();
-    const total = Number(plan.price);
+    const total = Number(renewTotal);
     const paid = Number(renewPaid);
+    if (total <= 0) return toast.error("Enter total fee");
     const balance = Math.max(0, total - paid);
 
     await supabase.from("members").update({
@@ -203,7 +208,7 @@ function MemberDetail() {
       });
     }
     if (paid > 0) {
-      await supabase.from("payments").insert({ member_id: id, invoice_id: inv?.id ?? null, amount: paid, mode: "cash" });
+      await supabase.from("payments").insert({ member_id: id, invoice_id: inv?.id ?? null, amount: paid, mode: renewPayMode });
     }
     toast.success("Membership renewed");
     setRenewOpen(false);
@@ -300,14 +305,18 @@ function MemberDetail() {
   };
 
   const downloadInvoice = async (invId: string) => {
-    const { data: inv } = await supabase.from("invoices").select("*").eq("id", invId).single();
-    const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", invId);
+    const [{ data: inv }, { data: items }, { data: invPays }] = await Promise.all([
+      supabase.from("invoices").select("*").eq("id", invId).single(),
+      supabase.from("invoice_items").select("*").eq("invoice_id", invId),
+      supabase.from("payments").select("mode").eq("invoice_id", invId).is("deleted_at", null),
+    ]);
     if (!inv) return;
     downloadInvoicePdf({
       invoice: inv as any,
       items: (items ?? []) as any,
       member: { full_name: m.full_name ?? undefined, phone: m.phone ?? undefined },
       gym: gym as any,
+      paymentMethods: (invPays ?? []).map(p => p.mode as string),
     });
   };
 
@@ -315,7 +324,10 @@ function MemberDetail() {
     const t = toast.loading("Preparing invoice link…");
     let invoiceLink = "";
     try {
-      const { data: items } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
+      const [{ data: items }, { data: invPays }] = await Promise.all([
+        supabase.from("invoice_items").select("*").eq("invoice_id", inv.id),
+        supabase.from("payments").select("mode").eq("invoice_id", inv.id).is("deleted_at", null),
+      ]);
       const doc = generateInvoicePdf({
         gymName: gym?.name ?? "Fitness Dream",
         gymTagline: (gym as any)?.tagline ?? null,
@@ -333,6 +345,7 @@ function MemberDetail() {
         amountPaid: Number(inv.amount_paid),
         notes: inv.notes,
         terms: (gym as any)?.invoice_terms ?? null,
+        paymentMethods: (invPays ?? []).map(p => p.mode as string),
       });
       const blob = doc.output("blob");
       const path = `${id}/invoice-${inv.number}.pdf`;
@@ -379,8 +392,9 @@ function MemberDetail() {
       starts_on: todayISO(),
       expires_on: expiresOn.toISOString().slice(0, 10),
     });
-    const total = Number(pkg.price);
+    const total = Number(ptTotal);
     const paid = Number(ptPaid);
+    if (total <= 0) return toast.error("Enter total fee");
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
       status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
@@ -390,10 +404,10 @@ function MemberDetail() {
       await supabase.from("invoice_items").insert({
         invoice_id: inv.id, description: `PT — ${pkg.name}`, qty: 1, unit_price: total, amount: total,
       });
-      if (paid > 0) await supabase.from("payments").insert({ member_id: id, invoice_id: inv.id, amount: paid, mode: "cash" });
+      if (paid > 0) await supabase.from("payments").insert({ member_id: id, invoice_id: inv.id, amount: paid, mode: ptPayMode });
     }
     toast.success("PT package added");
-    setPtOpen(false); setPtPkg(""); setPtTrainer(""); setPtPaid(0);
+    setPtOpen(false); setPtPkg(""); setPtTrainer(""); setPtTotal(0); setPtPaid(0); setPtPayMode("cash");
     qc.invalidateQueries();
   };
 
@@ -767,7 +781,7 @@ function MemberDetail() {
               <Label>Plan</Label>
               <Select value={renewPlan} onValueChange={(v) => setRenewPlan(v)}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
-                <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {currency}{p.price}</SelectItem>)}</SelectContent>
+                <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -780,7 +794,23 @@ function MemberDetail() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={renewPaid} onChange={setRenewPaid} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Total fee</Label><MoneyInput value={renewTotal} onChange={setRenewTotal} /></div>
+              <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={renewPaid} onChange={setRenewPaid} /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Payment method</Label>
+              <Select value={renewPayMode} onValueChange={(v) => setRenewPayMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
@@ -817,14 +847,15 @@ function MemberDetail() {
           <div className="grid gap-3">
             <div className="space-y-2"><Label>Amount</Label><MoneyInput value={payAmount} onChange={setPayAmount} /></div>
             <div className="space-y-2">
-              <Label>Payment mode</Label>
+              <Label>Payment method</Label>
               <Select value={payMode} onValueChange={(v) => setPayMode(v as any)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
                   <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
                   <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -861,7 +892,7 @@ function MemberDetail() {
               <Label>Package</Label>
               <Select value={ptPkg} onValueChange={(v) => setPtPkg(v)}>
                 <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
-                <SelectContent>{ptPackages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions · {currency}{p.price}</SelectItem>)}</SelectContent>
+                <SelectContent>{ptPackages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -871,7 +902,23 @@ function MemberDetail() {
                 <SelectContent>{trainers?.map(t => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={ptPaid} onChange={setPtPaid} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Total fee</Label><MoneyInput value={ptTotal} onChange={setPtTotal} /></div>
+              <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={ptPaid} onChange={setPtPaid} /></div>
+            </div>
+            <div className="space-y-2">
+              <Label>Payment method</Label>
+              <Select value={ptPayMode} onValueChange={(v) => setPtPayMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>

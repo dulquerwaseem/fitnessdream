@@ -58,6 +58,7 @@ function NewMemberPage() {
     start_date: todayISO(),
     trainer_id: "",
     notes: "",
+    payment_mode: "cash" as "cash" | "card" | "upi" | "bank_transfer" | "other",
   });
   const [saving, setSaving] = useState(false);
 
@@ -143,7 +144,7 @@ function NewMemberPage() {
           member_id: member.id,
           invoice_id: inv?.id ?? null,
           amount: Number(form.amount_paid),
-          mode: "cash",
+          mode: form.payment_mode,
         });
       }
     }
@@ -191,7 +192,7 @@ function NewMemberPage() {
               <Label>Plan</Label>
               <Select value={form.plan_id} onValueChange={(v) => set("plan_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
-                <SelectContent>{plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} — ₹{p.price}</SelectItem>)}</SelectContent>
+                <SelectContent>{plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
@@ -205,6 +206,19 @@ function NewMemberPage() {
             <div className="space-y-2"><Label>Expiry (auto)</Label><Input value={expiry} readOnly className="bg-muted/50" /></div>
             <div className="space-y-2"><Label>Total fee</Label><MoneyInput step="0.01" value={form.total_fee} onChange={(v) => set("total_fee", v)} /></div>
             <div className="space-y-2"><Label>Amount paid</Label><MoneyInput step="0.01" value={form.amount_paid} onChange={(v) => set("amount_paid", v)} /></div>
+            <div className="space-y-2">
+              <Label>Payment method</Label>
+              <Select value={form.payment_mode} onValueChange={(v) => set("payment_mode", v as typeof form.payment_mode)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2 sm:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </CardContent>
         </Card>

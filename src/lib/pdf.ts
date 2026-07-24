@@ -21,6 +21,7 @@ export type InvoicePdfInput = {
   amountPaid: number;
   notes?: string | null;
   terms?: string | null;
+  paymentMethods?: string[];
 };
 
 export function downloadInvoicePdf(args: {
@@ -31,6 +32,7 @@ export function downloadInvoicePdf(args: {
     name?: string; tagline?: string | null; address?: string | null; phone?: string | null;
     email?: string | null; currency_symbol?: string; invoice_terms?: string | null;
   } | null | undefined;
+  paymentMethods?: string[];
 }) {
   const doc = generateInvoicePdf({
     gymName: args.gym?.name ?? "Fitness Dream",
@@ -49,6 +51,7 @@ export function downloadInvoicePdf(args: {
     amountPaid: Number(args.invoice.amount_paid),
     notes: args.invoice.notes,
     terms: args.gym?.invoice_terms ?? null,
+    paymentMethods: args.paymentMethods,
   });
   doc.save(`invoice-${args.invoice.number}.pdf`);
 }
@@ -267,6 +270,20 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
     const noteLines = doc.splitTextToSize(inv.notes, cardX - M - 20);
     doc.text(noteLines, M, leftY + 12);
     leftY += 12 + noteLines.length * 11;
+  }
+
+  if (inv.paymentMethods && inv.paymentMethods.length) {
+    const labelMap: Record<string, string> = { cash: "Cash", upi: "UPI", card: "Card", bank_transfer: "Bank Transfer", other: "Other", unknown: "Other" };
+    const uniq = Array.from(new Set(inv.paymentMethods.map(m => labelMap[m] ?? m)));
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...MUTED);
+    doc.text("PAYMENT METHOD", M, leftY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...INK);
+    doc.text(uniq.join(", "), M, leftY + 12);
+    leftY += 24;
   }
 
   // ---------- Terms & Conditions ----------
