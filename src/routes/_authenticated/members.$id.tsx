@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
 import { normalizePhone, renderTemplate, waLink } from "@/lib/phone";
-import { downloadInvoicePdf } from "@/lib/pdf";
+import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
