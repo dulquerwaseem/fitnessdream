@@ -66,7 +66,7 @@ export function RecentlyDeleted() {
 
   const handlePurge = async () => {
     if (!purgeTarget) return;
-    const row = (data ?? []).find(r => r.id === purgeTarget.id);
+    const row = (data ?? []).find(r => r.id === purgeTarget.id) as Record<string, unknown> | undefined;
     if (!row) return;
     try {
       await hardDelete({
