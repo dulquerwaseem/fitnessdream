@@ -24,7 +24,7 @@ import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
-  CheckCircle2, Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
+  Pencil, Plus, FileText, Download, Send, MessageCircle, Activity,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/$id")({
