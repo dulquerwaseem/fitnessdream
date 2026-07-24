@@ -58,6 +58,7 @@ function LeadDetail() {
 
   const [note, setNote] = useState("");
   const [waOpen, setWaOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [tplId, setTplId] = useState("");
   const [waMsg, setWaMsg] = useState("");
   const [showAllTpls, setShowAllTpls] = useState(false);
