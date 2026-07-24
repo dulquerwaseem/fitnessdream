@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { fmtCurrency, fmtDate } from "./format";
+import { fmtDate } from "./format";
 
 type Item = { description: string; qty: number; unit_price: number; amount: number };
 
@@ -164,13 +164,24 @@ function drawLogo(doc: jsPDF, x: number, y: number, size: number) {
   doc.roundedRect(x + size - size * 0.12 - wW, cy - wH / 2, wW, wH, 1.5, 1.5, "F");
 }
 
+// jsPDF's built-in helvetica (WinAnsi) has no glyph for ₹ (U+20B9) — it renders
+// as a superscript "1". Replace with an ASCII-safe token so amounts render
+// correctly and columns don't truncate.
+function pdfCurrency(amount: number, symbol: string): string {
+  const safe = symbol === "₹" ? "Rs. " : symbol;
+  const n = Number(amount ?? 0);
+  if (!isFinite(n)) return `${safe}0`;
+  return `${safe}${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+}
+
 export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  const M = 42; // side margin
+  const M = 42;
+  const cur = (n: number) => pdfCurrency(n, inv.currencySymbol);
 
-  // ---------- Header (clean, not a flat block) ----------
+  // ---------- Header ----------
   const logoSize = 44;
   drawLogo(doc, M, 40, logoSize);
 
@@ -184,97 +195,141 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   doc.setTextColor(...MUTED);
   if (inv.gymTagline) doc.text(inv.gymTagline, M + logoSize + 14, 76);
 
-  // Right side: INVOICE label
+  // Right: INVOICE label + number + status pill
+  const balance = Math.max(0, inv.total - inv.amountPaid);
+  const isPaid = balance <= 0.001;
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(...ORANGE);
   doc.text("INVOICE", pw - M, 52, { align: "right" });
   doc.setTextColor(...INK);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
-  doc.text(`#${inv.number}`, pw - M, 70, { align: "right" });
+  doc.text(`#${inv.number}`, pw - M, 68, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...MUTED);
-  doc.text(`Issued ${fmtDate(inv.issuedAt)}`, pw - M, 84, { align: "right" });
+  doc.text(`Issued ${fmtDate(inv.issuedAt)}`, pw - M, 82, { align: "right" });
+
+  // Status pill under issued date, right-aligned
+  {
+    const label = isPaid ? "PAID" : "UNPAID";
+    const pillH = 16;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    const textW = doc.getTextWidth(label);
+    const pillW = textW + 16;
+    const pillX = pw - M - pillW;
+    const pillY = 90;
+    doc.setFillColor(...(isPaid ? SUCCESS : DANGER));
+    doc.roundedRect(pillX, pillY, pillW, pillH, 8, 8, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.text(label, pillX + pillW / 2, pillY + 11, { align: "center" });
+  }
 
   // Accent hairline under header
   doc.setDrawColor(...ORANGE);
   doc.setLineWidth(1.5);
-  doc.line(M, 100, pw - M, 100);
-  doc.setDrawColor(...HAIRLINE);
-  doc.setLineWidth(0.5);
-  doc.line(M, 103, pw - M, 103);
+  doc.line(M, 116, pw - M, 116);
 
   // ---------- Billed To / From ----------
-  const infoTop = 124;
+  const infoTop = 138;
+  const colGap = 20;
+  const colW = (pw - M * 2 - colGap) / 2;
+  const rightX = M + colW + colGap;
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(...MUTED);
   doc.text("BILLED TO", M, infoTop);
-  doc.text("FROM", pw / 2 + 10, infoTop);
+  doc.text("FROM", rightX, infoTop);
 
+  // Billed to
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...INK);
   doc.text(inv.memberName, M, infoTop + 16);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  if (inv.memberPhone) doc.text(inv.memberPhone, M, infoTop + 32);
+  let leftY = infoTop + 30;
+  if (inv.memberPhone) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...MUTED);
+    doc.text(inv.memberPhone, M, leftY);
+    leftY += 12;
+  }
 
+  // From
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(...INK);
-  doc.text(inv.gymName, pw / 2 + 10, infoTop + 16);
+  doc.text(inv.gymName, rightX, infoTop + 16);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(9.5);
   doc.setTextColor(...MUTED);
   let fromY = infoTop + 30;
   if (inv.gymAddress) {
-    const lines = doc.splitTextToSize(inv.gymAddress, pw / 2 - M - 10);
-    doc.text(lines, pw / 2 + 10, fromY);
-    fromY += lines.length * 11;
+    const lines = doc.splitTextToSize(inv.gymAddress, colW);
+    doc.text(lines, rightX, fromY);
+    fromY += lines.length * 12;
   }
-  if (inv.gymPhone) { doc.text(inv.gymPhone, pw / 2 + 10, fromY); fromY += 11; }
-  if (inv.gymEmail) { doc.text(inv.gymEmail, pw / 2 + 10, fromY); fromY += 11; }
+  if (inv.gymPhone) { doc.text(inv.gymPhone, rightX, fromY); fromY += 12; }
+  if (inv.gymEmail) { doc.text(inv.gymEmail, rightX, fromY); fromY += 12; }
 
   // ---------- Items table ----------
-  const tableStart = Math.max(infoTop + 68, fromY + 14);
+  const tableStart = Math.max(leftY, fromY) + 18;
   autoTable(doc, {
     startY: tableStart,
     head: [["Description", "Qty", "Unit Price", "Amount"]],
     body: inv.items.map((i) => [
       i.description,
       String(i.qty),
-      fmtCurrency(i.unit_price, inv.currencySymbol),
-      fmtCurrency(i.amount, inv.currencySymbol),
+      cur(i.unit_price),
+      cur(i.amount),
     ]),
     theme: "plain",
-    styles: { fontSize: 10, cellPadding: { top: 9, right: 10, bottom: 9, left: 10 }, textColor: INK, lineColor: HAIRLINE, lineWidth: 0.5 },
-    headStyles: {
-      fillColor: [245, 245, 244], textColor: INK, fontStyle: "bold", fontSize: 9,
-      cellPadding: { top: 8, right: 10, bottom: 8, left: 10 }, lineColor: HAIRLINE, lineWidth: 0.5,
+    styles: {
+      fontSize: 10,
+      cellPadding: { top: 10, right: 10, bottom: 10, left: 10 },
+      textColor: INK,
+      lineColor: HAIRLINE,
+      lineWidth: 0,
     },
-    alternateRowStyles: { fillColor: [252, 252, 252] },
+    headStyles: {
+      fillColor: [250, 250, 250],
+      textColor: MUTED,
+      fontStyle: "bold",
+      fontSize: 8.5,
+      cellPadding: { top: 8, right: 10, bottom: 8, left: 10 },
+      lineColor: HAIRLINE,
+      lineWidth: 0,
+    },
+    bodyStyles: { lineColor: HAIRLINE, lineWidth: { top: 0, right: 0, bottom: 0.5, left: 0 } as unknown as number },
     columnStyles: {
-      0: { cellWidth: "auto" },
-      1: { halign: "center", cellWidth: 50 },
-      2: { halign: "right", cellWidth: 90 },
-      3: { halign: "right", cellWidth: 90, fontStyle: "bold" },
+      0: { cellWidth: "auto", halign: "left" },
+      1: { halign: "center", cellWidth: 46 },
+      2: { halign: "right", cellWidth: 110 },
+      3: { halign: "right", cellWidth: 110, fontStyle: "bold" },
     },
     margin: { left: M, right: M },
+    didDrawCell: (data) => {
+      // subtle underline under header row only
+      if (data.section === "head") {
+        const { x, y, height, width } = data.cell;
+        doc.setDrawColor(...HAIRLINE);
+        doc.setLineWidth(0.75);
+        doc.line(x, y + height, x + width, y + height);
+      }
+    },
   });
 
   const afterY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tableStart + 40;
 
-  // ---------- Totals card ----------
-  const balance = Math.max(0, inv.total - inv.amountPaid);
-  const isPaid = balance <= 0.001;
-  const cardW = 260;
+  // ---------- Totals card (right-aligned) ----------
+  const cardW = 250;
   const cardX = pw - M - cardW;
   const cardY = afterY + 18;
-  const cardH = 118;
+  const cardH = 116;
 
   doc.setFillColor(...CARD_BG);
   doc.setDrawColor(...HAIRLINE);
@@ -285,113 +340,95 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   const valX = cardX + cardW - 16;
   let ty = cardY + 22;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...MUTED);
-  doc.text("Subtotal", labelX, ty);
-  doc.setTextColor(...INK);
-  doc.text(fmtCurrency(inv.subtotal, inv.currencySymbol), valX, ty, { align: "right" });
+  const totalRow = (label: string, value: string, bold = false) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...MUTED);
+    doc.text(label, labelX, ty);
+    doc.setTextColor(...INK);
+    if (bold) doc.setFont("helvetica", "bold");
+    doc.text(value, valX, ty, { align: "right" });
+  };
+  totalRow("Subtotal", cur(inv.subtotal));
+  ty += 17;
+  totalRow("Total", cur(inv.total), true);
+  ty += 17;
+  totalRow("Amount paid", cur(inv.amountPaid));
 
-  ty += 18;
-  doc.setTextColor(...MUTED);
-  doc.text("Total", labelX, ty);
-  doc.setTextColor(...INK);
-  doc.setFont("helvetica", "bold");
-  doc.text(fmtCurrency(inv.total, inv.currencySymbol), valX, ty, { align: "right" });
-
-  ty += 18;
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...MUTED);
-  doc.text("Amount paid", labelX, ty);
-  doc.setTextColor(...INK);
-  doc.text(fmtCurrency(inv.amountPaid, inv.currencySymbol), valX, ty, { align: "right" });
-
-  // divider inside card
   ty += 10;
   doc.setDrawColor(...HAIRLINE);
+  doc.setLineWidth(0.5);
   doc.line(labelX, ty, valX, ty);
 
-  ty += 22;
+  ty += 20;
   const balColor = isPaid ? SUCCESS : DANGER;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(...INK);
   doc.text(isPaid ? "Paid in full" : "Balance due", labelX, ty);
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setTextColor(...balColor);
-  doc.text(
-    isPaid ? fmtCurrency(0, inv.currencySymbol) : fmtCurrency(balance, inv.currencySymbol),
-    valX, ty, { align: "right" }
-  );
+  doc.text(isPaid ? cur(0) : cur(balance), valX, ty, { align: "right" });
 
-  // Status pill on the left of totals
-  const pillW = 78; const pillH = 22;
-  const pillX = M; const pillY = cardY + 6;
-  doc.setFillColor(...(isPaid ? SUCCESS : DANGER));
-  doc.roundedRect(pillX, pillY, pillW, pillH, 11, 11, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(isPaid ? "PAID" : "UNPAID", pillX + pillW / 2, pillY + 14, { align: "center" });
-
-  // Notes (left column, below status)
-  let leftY = pillY + pillH + 16;
+  // Left column beside totals: notes + payment method
+  let sideY = cardY + 8;
+  const sideMaxW = cardX - M - 20;
   if (inv.notes) {
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text("NOTES", M, leftY);
+    doc.text("NOTES", M, sideY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...INK);
-    const noteLines = doc.splitTextToSize(inv.notes, cardX - M - 20);
-    doc.text(noteLines, M, leftY + 12);
-    leftY += 12 + noteLines.length * 11;
+    const noteLines = doc.splitTextToSize(inv.notes, sideMaxW);
+    doc.text(noteLines, M, sideY + 12);
+    sideY += 14 + noteLines.length * 11;
   }
-
   if (inv.paymentMethods && inv.paymentMethods.length) {
     const labelMap: Record<string, string> = { cash: "Cash", upi: "UPI", card: "Card", bank_transfer: "Bank Transfer", other: "Other", unknown: "Other" };
     const uniq = Array.from(new Set(inv.paymentMethods.map(m => labelMap[m] ?? m)));
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...MUTED);
-    doc.text("PAYMENT METHOD", M, leftY);
+    doc.text("PAYMENT METHOD", M, sideY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...INK);
-    doc.text(uniq.join(", "), M, leftY + 12);
-    leftY += 24;
+    doc.text(uniq.join(", "), M, sideY + 12);
   }
 
-  // ---------- Terms & Conditions ----------
-  const afterTotals = Math.max(cardY + cardH, leftY) + 24;
-  const footerH = 46;
-  const termsMaxY = ph - footerH - 20;
-  let termsY = afterTotals;
+  // ---------- Terms & Conditions (flows right after totals) ----------
+  let termsY = cardY + cardH + 26;
+
+  const footerH = 44;
+  const footerReserved = footerH + 18; // gap before footer
+  const termsMaxY = ph - footerReserved;
 
   if (inv.terms && inv.terms.trim()) {
     doc.setDrawColor(...HAIRLINE);
     doc.setLineWidth(0.5);
-    doc.line(M, termsY - 12, pw - M, termsY - 12);
+    doc.line(M, termsY - 14, pw - M, termsY - 14);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...MUTED);
     doc.text("TERMS & CONDITIONS", M, termsY);
     termsY += 12;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(...MUTED);
     const termLines = doc.splitTextToSize(inv.terms, pw - M * 2);
-    // clip if would overflow footer
-    const maxLines = Math.max(0, Math.floor((termsMaxY - termsY) / 10));
+    const lineH = 10;
+    const maxLines = Math.max(0, Math.floor((termsMaxY - termsY) / lineH));
     const shown = termLines.slice(0, maxLines);
-    doc.text(shown, M, termsY);
+    doc.text(shown, M, termsY, { lineHeightFactor: 1.35 });
+    termsY += shown.length * lineH;
   }
 
-  // ---------- Footer ----------
-  const fy = ph - footerH;
+  // ---------- Footer (positioned right after terms, not page-bottom anchored) ----------
+  const fy = Math.min(ph - footerH, termsY + 18);
   doc.setDrawColor(...ORANGE);
   doc.setLineWidth(1);
   doc.line(M, fy, pw - M, fy);
@@ -402,14 +439,14 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   doc.text("Thank you for training with us!", M, fy + 16);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...MUTED);
-  const contactBits = [inv.gymPhone, inv.gymEmail, inv.gymAddress].filter(Boolean) as string[];
+  const contactBits = [inv.gymPhone, inv.gymEmail].filter(Boolean) as string[];
   if (contactBits.length) {
     doc.text(contactBits.join("  •  "), pw - M, fy + 16, { align: "right" });
   }
-  doc.setTextColor(...MUTED);
   doc.setFontSize(7.5);
+  doc.setTextColor(...MUTED);
   doc.text(
     `${inv.gymName} • Invoice ${inv.number} • ${fmtDate(inv.issuedAt)}`,
     M, fy + 30
