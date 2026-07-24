@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
+import { MoneyInput } from "@/components/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency } from "@/lib/format";
 import { Trash2, Plus } from "lucide-react";
@@ -38,7 +39,7 @@ function NewInvoicePage() {
   const save = async () => {
     if (subtotal <= 0) return toast.error("Add at least one line");
     setSaving(true);
-    const status = amountPaid >= subtotal ? "paid" : amountPaid > 0 ? "partial" : "unpaid";
+    const status = amountPaid <= 0 ? "unpaid" : amountPaid >= subtotal ? "paid" : "partial";
     const { data: inv, error } = await supabase.from("invoices").insert({
       member_id: memberId || null,
       subtotal, total: subtotal, amount_paid: amountPaid, status, notes: notes || null,
@@ -74,8 +75,8 @@ function NewInvoicePage() {
             {lines.map((l, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
                 <Input className="col-span-6" placeholder="Description" value={l.description} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, description: e.target.value} : x))} />
-                <Input className="col-span-2" type="number" placeholder="Qty" value={l.qty} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, qty: Number(e.target.value)} : x))} />
-                <Input className="col-span-3" type="number" placeholder="Price" value={l.unit_price} onChange={(e) => setLines(ls => ls.map((x,j) => j===i ? {...x, unit_price: Number(e.target.value)} : x))} />
+                <MoneyInput className="col-span-2" placeholder="Qty" value={l.qty} onChange={(v) => setLines(ls => ls.map((x,j) => j===i ? {...x, qty: v} : x))} />
+                <MoneyInput className="col-span-3" placeholder="Price" value={l.unit_price} onChange={(v) => setLines(ls => ls.map((x,j) => j===i ? {...x, unit_price: v} : x))} />
                 <Button size="icon" variant="ghost" className="col-span-1" onClick={() => setLines(ls => ls.filter((_,j) => j!==i))} disabled={lines.length === 1}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -91,7 +92,7 @@ function NewInvoicePage() {
             <span className="text-xl font-display font-bold">{fmtCurrency(subtotal)}</span>
           </div>
 
-          <div className="space-y-2"><Label>Amount paid now</Label><Input type="number" value={amountPaid} onChange={(e) => setAmountPaid(Number(e.target.value))} /></div>
+          <div className="space-y-2"><Label>Amount paid now</Label><MoneyInput value={amountPaid} onChange={setAmountPaid} /></div>
           <div className="space-y-2"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         </CardContent>
       </Card>

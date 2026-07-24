@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
+import { MoneyInput } from "@/components/money-input";
 import { normalizePhone } from "@/lib/phone";
 import { addMonthsISO, todayISO } from "@/lib/format";
 import { toast } from "sonner";
@@ -123,7 +124,7 @@ function NewMemberPage() {
           subtotal: Number(form.total_fee),
           total: Number(form.total_fee),
           amount_paid: Number(form.amount_paid),
-          status: balance === 0 ? "paid" : Number(form.amount_paid) > 0 ? "partial" : "unpaid",
+          status: Number(form.amount_paid) <= 0 ? "unpaid" : Number(form.amount_paid) >= Number(form.total_fee) ? "paid" : "partial",
           notes: `Membership: ${chosenPlan?.name ?? "custom"}`,
         })
         .select("id")
@@ -188,7 +189,7 @@ function NewMemberPage() {
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Plan</Label>
-              <Select value={form.plan_id} onValueChange={(v) => { set("plan_id", v); const p = plans?.find((pl) => pl.id === v); if (p) set("total_fee", Number(p.price)); }}>
+              <Select value={form.plan_id} onValueChange={(v) => set("plan_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
                 <SelectContent>{plans?.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} — ₹{p.price}</SelectItem>)}</SelectContent>
               </Select>
@@ -202,8 +203,8 @@ function NewMemberPage() {
             </div>
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} /></div>
             <div className="space-y-2"><Label>Expiry (auto)</Label><Input value={expiry} readOnly className="bg-muted/50" /></div>
-            <div className="space-y-2"><Label>Total fee</Label><Input type="number" step="0.01" value={form.total_fee} onChange={(e) => set("total_fee", Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" step="0.01" value={form.amount_paid} onChange={(e) => set("amount_paid", Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Total fee</Label><MoneyInput step="0.01" value={form.total_fee} onChange={(v) => set("total_fee", v)} /></div>
+            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput step="0.01" value={form.amount_paid} onChange={(v) => set("amount_paid", v)} /></div>
             <div className="space-y-2 sm:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </CardContent>
         </Card>

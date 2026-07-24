@@ -23,6 +23,7 @@ import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { MoneyInput } from "@/components/money-input";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
@@ -193,7 +194,7 @@ function MemberDetail() {
 
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
-      status: balance === 0 ? "paid" : paid > 0 ? "partial" : "unpaid",
+      status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
       notes: `Renewal: ${plan.name}`,
     }).select("id").single();
     if (inv) {
@@ -382,7 +383,7 @@ function MemberDetail() {
     const paid = Number(ptPaid);
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
-      status: paid >= total ? "paid" : paid > 0 ? "partial" : "unpaid",
+      status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
       notes: `PT: ${pkg.name}`,
     }).select("id").single();
     if (inv) {
@@ -764,7 +765,7 @@ function MemberDetail() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Plan</Label>
-              <Select value={renewPlan} onValueChange={(v) => { setRenewPlan(v); const p = plans?.find(pl => pl.id === v); if (p) setRenewPaid(Number(p.price)); }}>
+              <Select value={renewPlan} onValueChange={(v) => setRenewPlan(v)}>
                 <SelectTrigger><SelectValue placeholder="Select plan" /></SelectTrigger>
                 <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {currency}{p.price}</SelectItem>)}</SelectContent>
               </Select>
@@ -779,7 +780,7 @@ function MemberDetail() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={renewPaid} onChange={e => setRenewPaid(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={renewPaid} onChange={setRenewPaid} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenewOpen(false)}>Cancel</Button>
@@ -814,7 +815,7 @@ function MemberDetail() {
         <DialogContent>
           <DialogHeader><DialogTitle>Record payment</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={payAmount} onChange={e => setPayAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount</Label><MoneyInput value={payAmount} onChange={setPayAmount} /></div>
             <div className="space-y-2">
               <Label>Payment mode</Label>
               <Select value={payMode} onValueChange={(v) => setPayMode(v as any)}>
@@ -842,7 +843,7 @@ function MemberDetail() {
           <DialogHeader><DialogTitle>Create invoice</DialogTitle><DialogDescription>Ad-hoc charge (late fee, merchandise, etc.)</DialogDescription></DialogHeader>
           <div className="grid gap-3">
             <div className="space-y-2"><Label>Description</Label><Input value={invDesc} onChange={e => setInvDesc(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Amount</Label><Input type="number" value={invAmount} onChange={e => setInvAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount</Label><MoneyInput value={invAmount} onChange={setInvAmount} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInvOpen(false)}>Cancel</Button>
@@ -858,7 +859,7 @@ function MemberDetail() {
           <div className="grid gap-3">
             <div className="space-y-2">
               <Label>Package</Label>
-              <Select value={ptPkg} onValueChange={(v) => { setPtPkg(v); const p = ptPackages?.find(pk => pk.id === v); if (p) setPtPaid(Number(p.price)); }}>
+              <Select value={ptPkg} onValueChange={(v) => setPtPkg(v)}>
                 <SelectTrigger><SelectValue placeholder="Select package" /></SelectTrigger>
                 <SelectContent>{ptPackages?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {p.sessions} sessions · {currency}{p.price}</SelectItem>)}</SelectContent>
               </Select>
@@ -870,7 +871,7 @@ function MemberDetail() {
                 <SelectContent>{trainers?.map(t => <SelectItem key={t.id} value={t.id}>{t.full_name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Amount paid</Label><Input type="number" value={ptPaid} onChange={e => setPtPaid(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={ptPaid} onChange={setPtPaid} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPtOpen(false)}>Cancel</Button>
