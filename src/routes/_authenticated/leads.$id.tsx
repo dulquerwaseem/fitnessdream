@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/leads/$id")({
 });
 
 const sourceLabels: Record<string, string> = {
-  walk_in: "Walk-in", referral: "Referral", instagram: "Instagram",
+  walk_in: "Walk-in", phone_inquiry: "Phone Inquiry", referral: "Referral", instagram: "Instagram",
   google: "Google", whatsapp_inquiry: "WhatsApp", other: "Other",
 };
 
