@@ -1013,6 +1013,7 @@ export type Database = {
           balance_due: number | null
           created_at: string | null
           days_until_expiry: number | null
+          deleted_at: string | null
           dob: string | null
           email: string | null
           emergency_contact: string | null
@@ -1039,6 +1040,7 @@ export type Database = {
           balance_due?: number | null
           created_at?: string | null
           days_until_expiry?: never
+          deleted_at?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null
@@ -1065,6 +1067,7 @@ export type Database = {
           balance_due?: number | null
           created_at?: string | null
           days_until_expiry?: never
+          deleted_at?: string | null
           dob?: string | null
           email?: string | null
           emergency_contact?: string | null
