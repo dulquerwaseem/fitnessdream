@@ -81,10 +81,11 @@ function isFollowUpDue(lead: Lead, stages: Stage[]): boolean {
 
 function LeadsPage() {
   const qc = useQueryClient();
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const search = Route.useSearch();
+  const [view, setView] = useState<"kanban" | "list">(search.due ? "list" : "kanban");
   const [q, setQ] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [dueOnly, setDueOnly] = useState(false);
+  const [dueOnly, setDueOnly] = useState(!!search.due);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkTplId, setBulkTplId] = useState<string>("");
