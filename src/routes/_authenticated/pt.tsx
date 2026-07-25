@@ -148,6 +148,38 @@ function PTPage() {
         }
       />
 
+      {todayOnly && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" /> Today's sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {(todaySessions?.length ?? 0) === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No sessions scheduled today.</div>
+            ) : (
+              <div className="divide-y">
+                {todaySessions!.map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-4 gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">{s.enrollment?.member?.full_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {fmtDateTime(s.scheduled_at)} · Trainer: {s.trainer?.full_name ?? "—"}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={s.completed_at ? "bg-success/10 text-success border-success/30" : "bg-warning/10 text-warning border-warning/30"}>
+                      {s.completed_at ? "Completed" : "Scheduled"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
       {isLoading ? (
         <div className="grid gap-3">{Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
       ) : (enrollments?.length ?? 0) === 0 ? (
