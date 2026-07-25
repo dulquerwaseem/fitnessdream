@@ -7,9 +7,10 @@ import {
   Receipt,
   Dumbbell,
   Settings,
-  Flame,
   Sparkles,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
+
 import {
   Sidebar,
   SidebarContent,
@@ -68,16 +69,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-2 group">
-          <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center shadow-sm">
-            <Flame className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <BrandLogo className="h-8 w-8 shrink-0" />
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
             <span className="font-display font-bold text-sm tracking-tight">Fitness Dream</span>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Gym OS
-            </span>
           </div>
         </Link>
+
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

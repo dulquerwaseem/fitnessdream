@@ -3,15 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
+import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
-import { Plus, Printer, Receipt, Send } from "lucide-react";
+import { Plus, Printer, Receipt, Send, TrendingUp, Wallet } from "lucide-react";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({
@@ -31,7 +36,9 @@ const statusColor: Record<string, string> = {
 };
 
 function BillingPage() {
+  const { isAdmin } = useSession();
   const [modeFilter, setModeFilter] = useState<string>("all");
+
   const { data, isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
@@ -73,6 +80,8 @@ function BillingPage() {
           </div>
         }
       />
+      {isAdmin && <BillingFinancialOverview />}
+
       {isLoading ? (
         <div className="grid gap-3">{Array.from({length:5}).map((_,i)=> <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
       ) : (filtered.length === 0) ? (
@@ -171,3 +180,73 @@ function BillingPage() {
     </div>
   );
 }
+
+function BillingFinancialOverview() {
+  const { data } = useQuery({
+    queryKey: ["billing-financial-overview"],
+    queryFn: async () => {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const [revenue, dues] = await Promise.all([
+        supabase.from("payments").select("amount, paid_at").is("deleted_at", null).gte("paid_at", monthStart),
+        supabase.from("members").select("balance_due").is("deleted_at", null),
+      ]);
+      const revTotal = (revenue.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
+      const outstanding = (dues.data ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
+      const days: Record<string, number> = {};
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        days[d.toISOString().slice(0, 10)] = 0;
+      }
+      (revenue.data ?? []).forEach((r) => {
+        const k = String(r.paid_at).slice(0, 10);
+        if (k in days) days[k] += Number(r.amount);
+      });
+      const revSeries = Object.entries(days).map(([date, value]) => ({ date: date.slice(5), value }));
+      return { revTotal, outstanding, revSeries };
+    },
+  });
+  if (!data) return null;
+  return (
+    <div className="mb-6 grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Revenue (MTD)</CardTitle>
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-success/15 text-success">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent><div className="text-2xl font-display font-bold tracking-tight">{fmtCurrency(data.revTotal)}</div></CardContent>
+        </Card>
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Outstanding</CardTitle>
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-destructive/10 text-destructive">
+              <Wallet className="h-4 w-4" />
+            </div>
+          </CardHeader>
+          <CardContent><div className="text-2xl font-display font-bold tracking-tight">{fmtCurrency(data.outstanding)}</div></CardContent>
+        </Card>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-display">Revenue — last 30 days</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">Daily collected payments</p>
+        </CardHeader>
+        <CardContent className="h-[260px]">
+          <ResponsiveContainer>
+            <LineChart data={data.revSeries}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <XAxis dataKey="date" fontSize={11} stroke="var(--color-muted-foreground)" />
+              <YAxis fontSize={11} stroke="var(--color-muted-foreground)" />
+              <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
+              <Line type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+

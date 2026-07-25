@@ -143,26 +143,22 @@ const CARD_BG: [number, number, number] = [250, 250, 250];
 const SUCCESS: [number, number, number] = [22, 143, 79];
 const DANGER: [number, number, number] = [200, 45, 30];
 
+import { LOGO_BASE64 } from "@/assets/logo-base64";
+
 function drawLogo(doc: jsPDF, x: number, y: number, size: number) {
-  // Orange rounded square with white dumbbell mark
-  doc.setFillColor(...ORANGE);
-  doc.roundedRect(x, y, size, size, 6, 6, "F");
-  // subtle darker corner
-  doc.setFillColor(...ORANGE_DEEP);
-  doc.roundedRect(x, y + size * 0.6, size, size * 0.4, 6, 6, "F");
-  doc.setFillColor(...ORANGE);
-  doc.rect(x, y + size * 0.6, size, size * 0.15, "F");
-  // dumbbell glyph
-  doc.setFillColor(255, 255, 255);
-  const cy = y + size / 2;
-  const barW = size * 0.5;
-  const barH = size * 0.12;
-  doc.rect(x + (size - barW) / 2, cy - barH / 2, barW, barH, "F");
-  const wW = size * 0.14;
-  const wH = size * 0.36;
-  doc.roundedRect(x + size * 0.12, cy - wH / 2, wW, wH, 1.5, 1.5, "F");
-  doc.roundedRect(x + size - size * 0.12 - wW, cy - wH / 2, wW, wH, 1.5, 1.5, "F");
+  try {
+    doc.addImage(LOGO_BASE64, "PNG", x, y, size, size, undefined, "FAST");
+  } catch {
+    // fallback: orange square with F
+    doc.setFillColor(...ORANGE);
+    doc.roundedRect(x, y, size, size, 6, 6, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(size * 0.5);
+    doc.text("FD", x + size / 2, y + size * 0.65, { align: "center" });
+  }
 }
+
 
 // jsPDF's built-in helvetica (WinAnsi) has no glyph for ₹ (U+20B9) — it renders
 // as a superscript "1". Replace with an ASCII-safe token so amounts render

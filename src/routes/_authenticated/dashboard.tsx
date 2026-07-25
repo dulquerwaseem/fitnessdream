@@ -6,15 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { fmtCurrency, fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
-  Users, AlertTriangle, TrendingUp, UserPlus, Wallet,
-  ArrowRight, Plus, Receipt, MessageCircle,
+  Users, AlertTriangle, UserPlus, ArrowRight, Plus, Receipt, MessageCircle,
+  Bell, Dumbbell, Snowflake,
 } from "lucide-react";
-import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-} from "recharts";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -28,54 +26,53 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function useDashboard() {
   return useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["dashboard-ops"],
     queryFn: async () => {
       const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
       const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 
-
-      const [members, expiring, revenue, joins, dues] = await Promise.all([
-        // Active = not frozen AND expiry_date >= today (includes "expiring soon")
+      const [members, expiring, joins, frozen, ptToday, duePayments, stagesRes, leadsRes] = await Promise.all([
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today),
-        supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", new Date(Date.now() + 7 * 86400000).toISOString().slice(0,10)).order("expiry_date"),
-        supabase.from("payments").select("amount, paid_at").is("deleted_at", null).gte("paid_at", monthStart),
-        // New joins MTD = start_date in current calendar month (not created_at, which reflects import time)
+        supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", in7).order("expiry_date"),
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("start_date", monthStartDate),
-        supabase.from("members").select("balance_due").is("deleted_at", null),
+        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).not("frozen_at", "is", null),
+        supabase.from("pt_sessions").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("scheduled_at", todayStart).lt("scheduled_at", todayEnd),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "paid").lte("issued_at", todayEnd),
+        supabase.from("lead_stages").select("id, follow_up_days"),
+        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id").is("deleted_at", null),
       ]);
 
-      const revTotal = (revenue.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const outstanding = (dues.data ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
-
-      // Build last-30-days revenue series
-      const days: Record<string, number> = {};
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        days[d.toISOString().slice(0, 10)] = 0;
-      }
-      (revenue.data ?? []).forEach((r) => {
-        const k = String(r.paid_at).slice(0, 10);
-        if (k in days) days[k] += Number(r.amount);
-      });
-      const revSeries = Object.entries(days).map(([date, value]) => ({ date: date.slice(5), value }));
+      const stages = stagesRes.data ?? [];
+      const leads = leadsRes.data ?? [];
+      const nowMs = Date.now();
+      const followUpsDue = leads.filter(l => {
+        if (l.converted_member_id) return false;
+        if (l.next_follow_up_at && new Date(l.next_follow_up_at).getTime() <= nowMs) return true;
+        const stage = stages.find(s => s.id === l.stage_id);
+        if (!stage?.follow_up_days) return false;
+        const anchor = l.last_contacted_at ?? l.created_at;
+        return nowMs - new Date(anchor).getTime() > stage.follow_up_days * 86400000;
+      }).length;
 
       return {
         activeCount: members.count ?? 0,
         expiringCount: (expiring.data ?? []).length,
         expiringList: (expiring.data ?? []).slice(0, 5),
-        revTotal,
         newJoins: joins.count ?? 0,
-        outstanding,
-        revSeries,
+        frozenCount: frozen.count ?? 0,
+        ptToday: ptToday.count ?? 0,
+        duePayments: duePayments.count ?? 0,
+        followUpsDue,
         in7,
       };
     },
   });
 }
+
 
 function StatCard({
   title, value, icon: Icon, tone,
@@ -125,38 +122,16 @@ function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard title="Active members" value={String(data.activeCount)} icon={Users} tone="bg-primary/10 text-primary" />
         <StatCard title="Expiring in 7d" value={String(data.expiringCount)} icon={AlertTriangle} tone="bg-warning/15 text-warning" />
-        <StatCard title="Revenue (MTD)" value={fmtCurrency(data.revTotal)} icon={TrendingUp} tone="bg-success/15 text-success" />
-        <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-chart-3/15 text-chart-3" />
-        <StatCard title="Outstanding" value={fmtCurrency(data.outstanding)} icon={Wallet} tone="bg-destructive/10 text-destructive" />
+        <StatCard title="Follow-ups due" value={String(data.followUpsDue)} icon={Bell} tone="bg-destructive/10 text-destructive" />
+        <StatCard title="PT sessions today" value={String(data.ptToday)} icon={Dumbbell} tone="bg-chart-3/15 text-chart-3" />
+        <StatCard title="Frozen memberships" value={String(data.frozenCount)} icon={Snowflake} tone="bg-muted text-muted-foreground" />
       </div>
 
-      <div className="grid gap-4 mt-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-display">Revenue — last 30 days</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Daily collected payments</p>
-            </div>
-          </CardHeader>
-          <CardContent className="h-[260px]">
-            <ResponsiveContainer>
-              <LineChart data={data.revSeries}>
-                <defs>
-                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="date" fontSize={11} stroke="var(--color-muted-foreground)" />
-                <YAxis fontSize={11} stroke="var(--color-muted-foreground)" />
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
-                <Line type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2.5} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mt-4">
+        <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-success/15 text-success" />
+        <StatCard title="Invoices pending" value={String(data.duePayments)} icon={Receipt} tone="bg-warning/15 text-warning" />
       </div>
+
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">

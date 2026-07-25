@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Flame } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,11 +66,12 @@ function AuthPage() {
       {/* Brand panel */}
       <div className="hidden lg:flex relative overflow-hidden gradient-primary text-primary-foreground p-12 flex-col justify-between">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center">
-            <Flame className="h-5 w-5" />
+          <div className="h-12 w-12 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center p-1.5">
+            <BrandLogo className="h-full w-full" />
           </div>
           <span className="font-display font-bold text-xl">Fitness Dream</span>
         </div>
+
         <div className="max-w-md animate-fade-in">
           <h1 className="text-5xl font-display font-bold leading-tight tracking-tight">
             Push harder. <br /> Live stronger.
@@ -92,11 +93,10 @@ function AuthPage() {
         <Card className="w-full max-w-md border-border/60 shadow-lg animate-scale-in">
           <CardHeader className="space-y-2">
             <div className="lg:hidden flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg gradient-primary flex items-center justify-center">
-                <Flame className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <BrandLogo className="h-9 w-9" />
               <span className="font-display font-bold">Fitness Dream</span>
             </div>
+
             <CardTitle className="text-2xl font-display">Welcome</CardTitle>
             <CardDescription>Sign in to manage your gym.</CardDescription>
           </CardHeader>
