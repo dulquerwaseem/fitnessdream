@@ -80,6 +80,8 @@ function BillingPage() {
           </div>
         }
       />
+      {isAdmin && <BillingFinancialOverview />}
+
       {isLoading ? (
         <div className="grid gap-3">{Array.from({length:5}).map((_,i)=> <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
       ) : (filtered.length === 0) ? (
