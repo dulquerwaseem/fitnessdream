@@ -71,8 +71,8 @@ function BillingPage() {
   return (
     <div>
       <PageHeader
-        title="Billing"
-        description="Invoices and payments."
+        title={pendingOnly ? "Pending invoices" : "Billing"}
+        description={pendingOnly ? "Invoices with a balance due — chase these up." : "Invoices and payments."}
         actions={
           <div className="flex items-center gap-2">
             <Select value={modeFilter} onValueChange={setModeFilter}>
