@@ -26,54 +26,53 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function useDashboard() {
   return useQuery({
-    queryKey: ["dashboard"],
+    queryKey: ["dashboard-ops"],
     queryFn: async () => {
       const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
       const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 
-
-      const [members, expiring, revenue, joins, dues] = await Promise.all([
-        // Active = not frozen AND expiry_date >= today (includes "expiring soon")
+      const [members, expiring, joins, frozen, ptToday, duePayments, stagesRes, leadsRes] = await Promise.all([
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today),
-        supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", new Date(Date.now() + 7 * 86400000).toISOString().slice(0,10)).order("expiry_date"),
-        supabase.from("payments").select("amount, paid_at").is("deleted_at", null).gte("paid_at", monthStart),
-        // New joins MTD = start_date in current calendar month (not created_at, which reflects import time)
+        supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", in7).order("expiry_date"),
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("start_date", monthStartDate),
-        supabase.from("members").select("balance_due").is("deleted_at", null),
+        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).not("frozen_at", "is", null),
+        supabase.from("pt_sessions").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("scheduled_at", todayStart).lt("scheduled_at", todayEnd),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "paid").lte("issued_at", todayEnd),
+        supabase.from("lead_stages").select("id, follow_up_days"),
+        supabase.from("leads").select("id, stage_id, last_contacted_at, next_follow_up_at, created_at, converted_member_id").is("deleted_at", null),
       ]);
 
-      const revTotal = (revenue.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const outstanding = (dues.data ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
-
-      // Build last-30-days revenue series
-      const days: Record<string, number> = {};
-      for (let i = 29; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        days[d.toISOString().slice(0, 10)] = 0;
-      }
-      (revenue.data ?? []).forEach((r) => {
-        const k = String(r.paid_at).slice(0, 10);
-        if (k in days) days[k] += Number(r.amount);
-      });
-      const revSeries = Object.entries(days).map(([date, value]) => ({ date: date.slice(5), value }));
+      const stages = stagesRes.data ?? [];
+      const leads = leadsRes.data ?? [];
+      const nowMs = Date.now();
+      const followUpsDue = leads.filter(l => {
+        if (l.converted_member_id) return false;
+        if (l.next_follow_up_at && new Date(l.next_follow_up_at).getTime() <= nowMs) return true;
+        const stage = stages.find(s => s.id === l.stage_id);
+        if (!stage?.follow_up_days) return false;
+        const anchor = l.last_contacted_at ?? l.created_at;
+        return nowMs - new Date(anchor).getTime() > stage.follow_up_days * 86400000;
+      }).length;
 
       return {
         activeCount: members.count ?? 0,
         expiringCount: (expiring.data ?? []).length,
         expiringList: (expiring.data ?? []).slice(0, 5),
-        revTotal,
         newJoins: joins.count ?? 0,
-        outstanding,
-        revSeries,
+        frozenCount: frozen.count ?? 0,
+        ptToday: ptToday.count ?? 0,
+        duePayments: duePayments.count ?? 0,
+        followUpsDue,
         in7,
       };
     },
   });
 }
+
 
 function StatCard({
   title, value, icon: Icon, tone,
