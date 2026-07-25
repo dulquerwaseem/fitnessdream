@@ -3,15 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fmtCurrency, fmtDate } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
+import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
-import { Plus, Printer, Receipt, Send } from "lucide-react";
+import { Plus, Printer, Receipt, Send, TrendingUp, Wallet } from "lucide-react";
+import {
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({
@@ -31,7 +36,9 @@ const statusColor: Record<string, string> = {
 };
 
 function BillingPage() {
+  const { isAdmin } = useSession();
   const [modeFilter, setModeFilter] = useState<string>("all");
+
   const { data, isLoading } = useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
