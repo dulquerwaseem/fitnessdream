@@ -103,6 +103,7 @@ function MembersPage() {
             <SelectItem value="expiring_soon">Expiring soon</SelectItem>
             <SelectItem value="expired">Expired</SelectItem>
             <SelectItem value="frozen">Frozen</SelectItem>
+            <SelectItem value="new_mtd">New joins (this month)</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
