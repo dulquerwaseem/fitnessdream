@@ -120,16 +120,30 @@ function DashboardPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard title="Active members" value={String(data.activeCount)} icon={Users} tone="bg-primary/10 text-primary" />
-        <StatCard title="Expiring in 7d" value={String(data.expiringCount)} icon={AlertTriangle} tone="bg-warning/15 text-warning" />
-        <StatCard title="Follow-ups due" value={String(data.followUpsDue)} icon={Bell} tone="bg-destructive/10 text-destructive" />
-        <StatCard title="PT sessions today" value={String(data.ptToday)} icon={Dumbbell} tone="bg-chart-3/15 text-chart-3" />
-        <StatCard title="Frozen memberships" value={String(data.frozenCount)} icon={Snowflake} tone="bg-muted text-muted-foreground" />
+        <Link to="/members" search={{ status: "active" }} className="block">
+          <StatCard title="Active members" value={String(data.activeCount)} icon={Users} tone="bg-primary/10 text-primary" />
+        </Link>
+        <Link to="/members" search={{ status: "expiring_soon" }} className="block">
+          <StatCard title="Expiring in 7d" value={String(data.expiringCount)} icon={AlertTriangle} tone="bg-warning/15 text-warning" />
+        </Link>
+        <Link to="/leads" search={{ due: true }} className="block">
+          <StatCard title="Follow-ups due" value={String(data.followUpsDue)} icon={Bell} tone="bg-destructive/10 text-destructive" />
+        </Link>
+        <Link to="/pt" search={{ today: true }} className="block">
+          <StatCard title="PT sessions today" value={String(data.ptToday)} icon={Dumbbell} tone="bg-chart-3/15 text-chart-3" />
+        </Link>
+        <Link to="/members" search={{ status: "frozen" }} className="block">
+          <StatCard title="Frozen memberships" value={String(data.frozenCount)} icon={Snowflake} tone="bg-muted text-muted-foreground" />
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mt-4">
-        <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-success/15 text-success" />
-        <StatCard title="Invoices pending" value={String(data.duePayments)} icon={Receipt} tone="bg-warning/15 text-warning" />
+        <Link to="/members" search={{ status: "new_mtd" }} className="block">
+          <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-success/15 text-success" />
+        </Link>
+        <Link to="/billing" search={{ pending: true }} className="block">
+          <StatCard title="Invoices pending" value={String(data.duePayments)} icon={Receipt} tone="bg-warning/15 text-warning" />
+        </Link>
       </div>
 
 
