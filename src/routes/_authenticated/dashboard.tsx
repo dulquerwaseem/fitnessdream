@@ -123,38 +123,16 @@ function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard title="Active members" value={String(data.activeCount)} icon={Users} tone="bg-primary/10 text-primary" />
         <StatCard title="Expiring in 7d" value={String(data.expiringCount)} icon={AlertTriangle} tone="bg-warning/15 text-warning" />
-        <StatCard title="Revenue (MTD)" value={fmtCurrency(data.revTotal)} icon={TrendingUp} tone="bg-success/15 text-success" />
-        <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-chart-3/15 text-chart-3" />
-        <StatCard title="Outstanding" value={fmtCurrency(data.outstanding)} icon={Wallet} tone="bg-destructive/10 text-destructive" />
+        <StatCard title="Follow-ups due" value={String(data.followUpsDue)} icon={Bell} tone="bg-destructive/10 text-destructive" />
+        <StatCard title="PT sessions today" value={String(data.ptToday)} icon={Dumbbell} tone="bg-chart-3/15 text-chart-3" />
+        <StatCard title="Frozen memberships" value={String(data.frozenCount)} icon={Snowflake} tone="bg-muted text-muted-foreground" />
       </div>
 
-      <div className="grid gap-4 mt-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-display">Revenue — last 30 days</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Daily collected payments</p>
-            </div>
-          </CardHeader>
-          <CardContent className="h-[260px]">
-            <ResponsiveContainer>
-              <LineChart data={data.revSeries}>
-                <defs>
-                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="date" fontSize={11} stroke="var(--color-muted-foreground)" />
-                <YAxis fontSize={11} stroke="var(--color-muted-foreground)" />
-                <Tooltip contentStyle={{ background: "var(--color-popover)", border: "1px solid var(--color-border)", borderRadius: 8 }} />
-                <Line type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={2.5} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mt-4">
+        <StatCard title="New joins (MTD)" value={String(data.newJoins)} icon={UserPlus} tone="bg-success/15 text-success" />
+        <StatCard title="Invoices pending" value={String(data.duePayments)} icon={Receipt} tone="bg-warning/15 text-warning" />
       </div>
+
 
       <Card className="mt-6">
         <CardHeader className="flex flex-row items-center justify-between">
