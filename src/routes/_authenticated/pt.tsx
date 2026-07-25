@@ -33,8 +33,27 @@ export const Route = createFileRoute("/_authenticated/pt")({
 
 function PTPage() {
   const qc = useQueryClient();
+  const search = Route.useSearch();
+  const todayOnly = !!search.today;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ member_id: "", trainer_id: "", package_id: "", starts_on: todayISO() });
+
+  const { data: todaySessions } = useQuery({
+    queryKey: ["pt-sessions-today"],
+    enabled: todayOnly,
+    queryFn: async () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+      const { data } = await supabase.from("pt_sessions")
+        .select("id, scheduled_at, completed_at, notes, trainer:staff!pt_sessions_trainer_id_fkey(full_name), enrollment:pt_enrollments!pt_sessions_enrollment_id_fkey(member:members!pt_enrollments_member_id_fkey(full_name, phone))")
+        .is("deleted_at", null)
+        .gte("scheduled_at", start)
+        .lt("scheduled_at", end)
+        .order("scheduled_at");
+      return data ?? [];
+    },
+  });
 
   const { data: enrollments, isLoading } = useQuery({
     queryKey: ["pt-enrollments"],
