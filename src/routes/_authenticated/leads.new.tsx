@@ -122,7 +122,7 @@ function NewLeadPage() {
               <Label>Interested plan</Label>
               <Select value={form.interested_plan_id} onValueChange={(v) => set("interested_plan_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — ₹{p.price}</SelectItem>)}</SelectContent>
+                <SelectContent>{plans?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
