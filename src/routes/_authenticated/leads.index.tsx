@@ -16,8 +16,14 @@ import { fmtDate, fmtDateTime, initials } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { Plus, Search, Sparkles, MessageCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const leadsSearchSchema = z.object({
+  due: z.boolean().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/leads/")({
+  validateSearch: (s) => leadsSearchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Leads — Fitness Dream" },
