@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency, fmtDate, fmtDateTime, todayISO } from "@/lib/format";
+import { fmtDate, fmtDateTime, todayISO } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Dumbbell, CalendarClock } from "lucide-react";
 import { z } from "zod";
