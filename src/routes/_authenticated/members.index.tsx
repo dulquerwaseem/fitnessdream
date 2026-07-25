@@ -16,7 +16,7 @@ import { z } from "zod";
 import { useDebouncedValue } from "@/hooks/use-debounced";
 
 const searchSchema = z.object({
-  status: z.enum(["all", "active", "expiring_soon", "expired", "frozen"]).optional().catch("all"),
+  status: z.enum(["all", "active", "expiring_soon", "expired", "frozen", "new_mtd"]).optional().catch("all"),
 });
 
 export const Route = createFileRoute("/_authenticated/members/")({
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/members/")({
   component: MembersPage,
 });
 
-type StatusFilter = "all" | "active" | "expiring_soon" | "expired" | "frozen";
+type StatusFilter = "all" | "active" | "expiring_soon" | "expired" | "frozen" | "new_mtd";
 type SortKey = "name" | "join" | "expiry" | "balance";
 
 const statusStyles: Record<string, string> = {
@@ -44,7 +44,7 @@ function MembersPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<SortKey>("expiry");
+  const [sort, setSort] = useState<SortKey>(search.status === "expiring_soon" ? "expiry" : search.status === "new_mtd" ? "join" : "expiry");
   const debouncedQ = useDebouncedValue(q, 300);
 
   const status = (search.status ?? "all") as StatusFilter;
@@ -53,7 +53,13 @@ function MembersPage() {
     queryKey: ["members-list", status, debouncedQ, sort],
     queryFn: async () => {
       let query = supabase.from("members_with_status").select("*");
-      if (status !== "all") query = query.eq("status", status);
+      if (status === "new_mtd") {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        query = query.gte("start_date", monthStart);
+      } else if (status !== "all") {
+        query = query.eq("status", status);
+      }
       if (debouncedQ.trim()) {
         const term = `%${debouncedQ.trim()}%`;
         query = query.or(`full_name.ilike.${term},phone.ilike.${term},email.ilike.${term}`);
@@ -64,7 +70,7 @@ function MembersPage() {
         case "expiry": query = query.order("expiry_date"); break;
         case "balance": query = query.order("balance_due", { ascending: false }); break;
       }
-      const { data, error } = await query.limit(200);
+      const { data, error } = await query.limit(500);
       if (error) throw error;
       return data ?? [];
     },
@@ -97,6 +103,7 @@ function MembersPage() {
             <SelectItem value="expiring_soon">Expiring soon</SelectItem>
             <SelectItem value="expired">Expired</SelectItem>
             <SelectItem value="frozen">Frozen</SelectItem>
+            <SelectItem value="new_mtd">New joins (this month)</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>

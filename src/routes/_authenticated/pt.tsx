@@ -11,11 +11,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency, fmtDate, todayISO } from "@/lib/format";
+import { fmtDate, fmtDateTime, todayISO } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, Dumbbell } from "lucide-react";
+import { Plus, Dumbbell, CalendarClock } from "lucide-react";
+import { z } from "zod";
+
+const ptSearchSchema = z.object({
+  today: z.boolean().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/pt")({
+  validateSearch: (s) => ptSearchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Personal Training — Fitness Dream" },
@@ -27,8 +33,27 @@ export const Route = createFileRoute("/_authenticated/pt")({
 
 function PTPage() {
   const qc = useQueryClient();
+  const search = Route.useSearch();
+  const todayOnly = !!search.today;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ member_id: "", trainer_id: "", package_id: "", starts_on: todayISO() });
+
+  const { data: todaySessions } = useQuery({
+    queryKey: ["pt-sessions-today"],
+    enabled: todayOnly,
+    queryFn: async () => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+      const { data } = await supabase.from("pt_sessions")
+        .select("id, scheduled_at, completed_at, notes, trainer:staff!pt_sessions_trainer_id_fkey(full_name), enrollment:pt_enrollments!pt_sessions_enrollment_id_fkey(member:members!pt_enrollments_member_id_fkey(full_name, phone))")
+        .is("deleted_at", null)
+        .gte("scheduled_at", start)
+        .lt("scheduled_at", end)
+        .order("scheduled_at");
+      return data ?? [];
+    },
+  });
 
   const { data: enrollments, isLoading } = useQuery({
     queryKey: ["pt-enrollments"],
@@ -122,6 +147,38 @@ function PTPage() {
           </Dialog>
         }
       />
+
+      {todayOnly && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="text-base font-display flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-primary" /> Today's sessions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            {(todaySessions?.length ?? 0) === 0 ? (
+              <div className="p-6 text-center text-sm text-muted-foreground">No sessions scheduled today.</div>
+            ) : (
+              <div className="divide-y">
+                {todaySessions!.map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between p-4 gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium">{s.enrollment?.member?.full_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {fmtDateTime(s.scheduled_at)} · Trainer: {s.trainer?.full_name ?? "—"}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className={s.completed_at ? "bg-success/10 text-success border-success/30" : "bg-warning/10 text-warning border-warning/30"}>
+                      {s.completed_at ? "Completed" : "Scheduled"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
 
       {isLoading ? (
         <div className="grid gap-3">{Array.from({length:3}).map((_,i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>

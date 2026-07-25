@@ -16,9 +16,14 @@ import { Plus, Printer, Receipt, Send, TrendingUp, Wallet } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+import { z } from "zod";
 
+const billingSearchSchema = z.object({
+  pending: z.boolean().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/billing")({
+  validateSearch: (s) => billingSearchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Billing — Fitness Dream" },
@@ -37,30 +42,37 @@ const statusColor: Record<string, string> = {
 
 function BillingPage() {
   const { isAdmin } = useSession();
+  const search = Route.useSearch();
+  const pendingOnly = !!search.pending;
   const [modeFilter, setModeFilter] = useState<string>("all");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", pendingOnly],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("invoices")
         .select("id, number, total, amount_paid, status, issued_at, member:members!invoices_member_id_fkey(full_name, phone), payments(mode)")
+        .is("deleted_at", null)
         .order("issued_at", { ascending: false })
-        .limit(200);
+        .limit(500);
+      if (pendingOnly) q = q.neq("status", "paid");
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const filtered = useMemo(() => {
-    if (modeFilter === "all") return data ?? [];
-    return (data ?? []).filter((inv: any) => (inv.payments ?? []).some((p: any) => p.mode === modeFilter));
-  }, [data, modeFilter]);
+    let list = data ?? [];
+    if (pendingOnly) list = list.filter((inv: any) => Number(inv.amount_paid) < Number(inv.total));
+    if (modeFilter === "all") return list;
+    return list.filter((inv: any) => (inv.payments ?? []).some((p: any) => p.mode === modeFilter));
+  }, [data, modeFilter, pendingOnly]);
 
   return (
     <div>
       <PageHeader
-        title="Billing"
-        description="Invoices and payments."
+        title={pendingOnly ? "Pending invoices" : "Billing"}
+        description={pendingOnly ? "Invoices with a balance due — chase these up." : "Invoices and payments."}
         actions={
           <div className="flex items-center gap-2">
             <Select value={modeFilter} onValueChange={setModeFilter}>
@@ -106,13 +118,17 @@ function BillingPage() {
                     <Badge variant="outline" className={`capitalize ${statusColor[inv.status!] ?? ""}`}>{inv.status}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {inv.member?.full_name ?? "Walk-in"} · {fmtDate(inv.issued_at)}
+                    {inv.member?.full_name ?? "Walk-in"} · Issued {fmtDate(inv.issued_at)}
+                    {pendingOnly && (() => {
+                      const days = Math.floor((Date.now() - new Date(inv.issued_at).getTime()) / 86400000);
+                      return days > 0 ? <span className="text-destructive"> · {days}d overdue</span> : null;
+                    })()}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{fmtCurrency(inv.total)}</div>
                   {Number(inv.amount_paid) < Number(inv.total) && (
-                    <div className="text-xs text-destructive">Due {fmtCurrency(Number(inv.total) - Number(inv.amount_paid))}</div>
+                    <div className="text-xs text-destructive font-medium">Due {fmtCurrency(Number(inv.total) - Number(inv.amount_paid))}</div>
                   )}
                 </div>
                 <Button

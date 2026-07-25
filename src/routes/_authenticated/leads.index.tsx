@@ -16,8 +16,14 @@ import { fmtDate, fmtDateTime, initials } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import { Plus, Search, Sparkles, MessageCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const leadsSearchSchema = z.object({
+  due: z.boolean().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/leads/")({
+  validateSearch: (s) => leadsSearchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Leads — Fitness Dream" },
@@ -75,10 +81,11 @@ function isFollowUpDue(lead: Lead, stages: Stage[]): boolean {
 
 function LeadsPage() {
   const qc = useQueryClient();
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const search = Route.useSearch();
+  const [view, setView] = useState<"kanban" | "list">(search.due ? "list" : "kanban");
   const [q, setQ] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [dueOnly, setDueOnly] = useState(false);
+  const [dueOnly, setDueOnly] = useState(!!search.due);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkTplId, setBulkTplId] = useState<string>("");
