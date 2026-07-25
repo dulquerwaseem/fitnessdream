@@ -118,13 +118,17 @@ function BillingPage() {
                     <Badge variant="outline" className={`capitalize ${statusColor[inv.status!] ?? ""}`}>{inv.status}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {inv.member?.full_name ?? "Walk-in"} · {fmtDate(inv.issued_at)}
+                    {inv.member?.full_name ?? "Walk-in"} · Issued {fmtDate(inv.issued_at)}
+                    {pendingOnly && (() => {
+                      const days = Math.floor((Date.now() - new Date(inv.issued_at).getTime()) / 86400000);
+                      return days > 0 ? <span className="text-destructive"> · {days}d overdue</span> : null;
+                    })()}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{fmtCurrency(inv.total)}</div>
                   {Number(inv.amount_paid) < Number(inv.total) && (
-                    <div className="text-xs text-destructive">Due {fmtCurrency(Number(inv.total) - Number(inv.amount_paid))}</div>
+                    <div className="text-xs text-destructive font-medium">Due {fmtCurrency(Number(inv.total) - Number(inv.amount_paid))}</div>
                   )}
                 </div>
                 <Button
