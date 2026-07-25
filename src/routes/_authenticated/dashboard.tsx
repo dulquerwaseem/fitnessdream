@@ -6,15 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { fmtCurrency, fmtDate } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
-  Users, AlertTriangle, TrendingUp, UserPlus, Wallet,
-  ArrowRight, Plus, Receipt, MessageCircle,
+  Users, AlertTriangle, UserPlus, ArrowRight, Plus, Receipt, MessageCircle,
+  Bell, Dumbbell, Snowflake,
 } from "lucide-react";
-import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-} from "recharts";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
