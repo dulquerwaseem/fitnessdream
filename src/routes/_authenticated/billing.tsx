@@ -16,9 +16,14 @@ import { Plus, Printer, Receipt, Send, TrendingUp, Wallet } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+import { z } from "zod";
 
+const billingSearchSchema = z.object({
+  pending: z.boolean().optional().catch(undefined),
+});
 
 export const Route = createFileRoute("/_authenticated/billing")({
+  validateSearch: (s) => billingSearchSchema.parse(s),
   head: () => ({
     meta: [
       { title: "Billing — Fitness Dream" },
