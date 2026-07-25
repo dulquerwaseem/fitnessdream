@@ -42,24 +42,31 @@ const statusColor: Record<string, string> = {
 
 function BillingPage() {
   const { isAdmin } = useSession();
+  const search = Route.useSearch();
+  const pendingOnly = !!search.pending;
   const [modeFilter, setModeFilter] = useState<string>("all");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["invoices"],
+    queryKey: ["invoices", pendingOnly],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("invoices")
         .select("id, number, total, amount_paid, status, issued_at, member:members!invoices_member_id_fkey(full_name, phone), payments(mode)")
+        .is("deleted_at", null)
         .order("issued_at", { ascending: false })
-        .limit(200);
+        .limit(500);
+      if (pendingOnly) q = q.neq("status", "paid");
+      const { data } = await q;
       return data ?? [];
     },
   });
 
   const filtered = useMemo(() => {
-    if (modeFilter === "all") return data ?? [];
-    return (data ?? []).filter((inv: any) => (inv.payments ?? []).some((p: any) => p.mode === modeFilter));
-  }, [data, modeFilter]);
+    let list = data ?? [];
+    if (pendingOnly) list = list.filter((inv: any) => Number(inv.amount_paid) < Number(inv.total));
+    if (modeFilter === "all") return list;
+    return list.filter((inv: any) => (inv.payments ?? []).some((p: any) => p.mode === modeFilter));
+  }, [data, modeFilter, pendingOnly]);
 
   return (
     <div>
