@@ -60,20 +60,22 @@ function SettingsPage() {
     queryFn: async () => (await supabase.from("plans").select("*").order("duration_months")).data ?? [],
   });
 
-  const [gymForm, setGymForm] = useState({ name: "", tagline: "", phone: "", email: "", address: "", currency_symbol: "₹", whatsapp_country_code: "+91", invoice_terms: "" });
+  const [gymForm, setGymForm] = useState({ name: "", tagline: "", phone: "", email: "", address: "", currency_symbol: "₹", whatsapp_country_code: "+91", invoice_terms: "", gst_number: "", gst_rate: "18" });
   useEffect(() => {
     if (gym) setGymForm({
       name: gym.name ?? "", tagline: gym.tagline ?? "", phone: gym.phone ?? "",
       email: gym.email ?? "", address: gym.address ?? "",
       currency_symbol: gym.currency_symbol ?? "₹", whatsapp_country_code: gym.whatsapp_country_code ?? "+91",
       invoice_terms: (gym as any).invoice_terms ?? "",
+      gst_number: (gym as any).gst_number ?? "",
+      gst_rate: String((gym as any).gst_rate ?? 18),
     });
   }, [gym]);
 
   const saveGym = async () => {
     if (!gym?.id) return;
     const { error } = await supabase.from("gym_settings").update({
-      ...gymForm, updated_at: new Date().toISOString(),
+      ...gymForm, gst_rate: Number(gymForm.gst_rate || 18), updated_at: new Date().toISOString(),
     }).eq("id", gym.id);
     if (error) return toast.error(error.message);
     toast.success("Settings saved");
@@ -275,6 +277,8 @@ function SettingsPage() {
               <div className="space-y-2"><Label>Email</Label><Input type="email" value={gymForm.email} onChange={(e) => setGymForm(f => ({...f, email: e.target.value}))} /></div>
               <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Textarea value={gymForm.address} onChange={(e) => setGymForm(f => ({...f, address: e.target.value}))} /></div>
               <div className="space-y-2"><Label>Currency symbol</Label><Input value={gymForm.currency_symbol} onChange={(e) => setGymForm(f => ({...f, currency_symbol: e.target.value}))} /></div>
+              <div className="space-y-2"><Label>GST number (GSTIN)</Label><Input value={gymForm.gst_number} onChange={(e) => setGymForm(f => ({...f, gst_number: e.target.value.toUpperCase()}))} /></div>
+              <div className="space-y-2"><Label>GST rate % (inclusive)</Label><Input value={gymForm.gst_rate} onChange={(e) => setGymForm(f => ({...f, gst_rate: e.target.value}))} /></div>
               <div className="space-y-2"><Label>WhatsApp country code</Label><Input value={gymForm.whatsapp_country_code} onChange={(e) => setGymForm(f => ({...f, whatsapp_country_code: e.target.value}))} /></div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Invoice terms & conditions</Label>
