@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { MoneyInput } from "@/components/money-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency, fmtDate, fmtDateTime } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtDateTime, gstSplit } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Plus, Printer, Send } from "lucide-react";
@@ -47,6 +47,7 @@ function InvoiceDetail() {
   if (!inv) return <div>Not found. <Link to="/billing" className="text-primary story-link">Back</Link></div>;
 
   const balance = Number(inv.total) - Number(inv.amount_paid);
+  const gst = gstSplit(inv.total, gym?.gst_rate != null ? Number(gym.gst_rate) : 18);
   const member = inv.members as { full_name?: string; phone?: string; email?: string } | null;
 
   const recordPayment = async () => {
