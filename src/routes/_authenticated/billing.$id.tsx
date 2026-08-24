@@ -178,6 +178,9 @@ function InvoiceDetail() {
             <div className="font-semibold">{member?.full_name ?? "Walk-in"}</div>
             {member?.phone && <div className="text-muted-foreground">{member.phone}</div>}
             {member?.email && <div className="text-muted-foreground">{member.email}</div>}
+            {gym?.gst_number && (
+              <div className="pt-2 border-t mt-2 text-xs text-muted-foreground">GSTIN: {gym.gst_number}</div>
+            )}
           </CardContent></Card>
 
 
