@@ -60,6 +60,8 @@ export type Database = {
           currency: string
           currency_symbol: string
           email: string | null
+          gst_number: string | null
+          gst_rate: number
           id: number
           invoice_terms: string
           logo_url: string | null
@@ -76,6 +78,8 @@ export type Database = {
           currency?: string
           currency_symbol?: string
           email?: string | null
+          gst_number?: string | null
+          gst_rate?: number
           id?: number
           invoice_terms?: string
           logo_url?: string | null
@@ -92,6 +96,8 @@ export type Database = {
           currency?: string
           currency_symbol?: string
           email?: string | null
+          gst_number?: string | null
+          gst_rate?: number
           id?: number
           invoice_terms?: string
           logo_url?: string | null
