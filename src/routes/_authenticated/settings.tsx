@@ -418,9 +418,10 @@ function SettingsPage() {
                   <Trash2 className="h-4 w-4" /> Reset members
                 </CardTitle>
                 <CardDescription>
-                  Removes every member so you can restore a fresh backup. A JSON backup downloads first,
-                  and removed members stay in “Recently deleted” for 30 days so you can restore them anytime.
+                  Removes every member along with their invoices, payments and PT records so you can restore a fresh backup.
+                  A JSON backup downloads first, and everything stays in “Recently deleted” for 30 days so you can restore it anytime.
                 </CardDescription>
+
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="border-destructive/50 text-destructive" disabled={resetting} onClick={() => setResetOpen(true)}>
