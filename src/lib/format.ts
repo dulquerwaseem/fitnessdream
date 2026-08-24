@@ -39,3 +39,11 @@ export function initials(name: string | null | undefined): string {
     .map((s) => s[0]?.toUpperCase() ?? "")
     .join("");
 }
+
+/** Amounts entered are GST-inclusive. Split a gross amount into taxable value + GST. */
+export function gstSplit(gross: number | string | null | undefined, rate = 18) {
+  const total = Number(gross ?? 0);
+  const taxable = Math.round((total / (1 + rate / 100)) * 100) / 100;
+  const gst = Math.round((total - taxable) * 100) / 100;
+  return { total, taxable, gst, rate };
+}
