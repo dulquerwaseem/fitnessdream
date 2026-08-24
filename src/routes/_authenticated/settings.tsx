@@ -48,6 +48,46 @@ function SettingsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { isAdmin } = useSession();
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // Remove all members (soft delete → restorable from Recently deleted for 30 days)
+  const resetMembers = async (reason?: string) => {
+    setResetting(true);
+    try {
+      await exportJson();
+      const { data: ids, error: readErr } = await supabase
+        .from("members").select("id").is("deleted_at", null);
+      if (readErr) throw readErr;
+      const count = ids?.length ?? 0;
+      if (count === 0) { toast.info("No members to remove"); return; }
+
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("members")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: userRes.user?.id ?? null,
+          deleted_reason: reason ?? "Bulk reset before restore",
+        })
+        .is("deleted_at", null);
+      if (error) throw error;
+
+      await logAudit({
+        action: "soft_delete",
+        entity_type: "member",
+        summary: `Bulk reset: removed ${count} members (restorable for 30 days)`,
+        metadata: { count, reason: reason ?? null },
+      });
+      toast.success(`${count} members removed — restorable from Recently deleted`);
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Best-effort auto-purge of records older than 30 days when an admin opens Settings.
   useEffect(() => {
