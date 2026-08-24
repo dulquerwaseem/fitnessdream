@@ -10,6 +10,8 @@ export type InvoicePdfInput = {
   gymAddress?: string | null;
   gymPhone?: string | null;
   gymEmail?: string | null;
+  gymGst?: string | null;
+  gstRate?: number;
   currencySymbol: string;
   number: string;
   issuedAt: string;
@@ -31,6 +33,7 @@ export function downloadInvoicePdf(args: {
   gym: {
     name?: string; tagline?: string | null; address?: string | null; phone?: string | null;
     email?: string | null; currency_symbol?: string; invoice_terms?: string | null;
+    gst_number?: string | null; gst_rate?: number | string | null;
   } | null | undefined;
   paymentMethods?: string[];
 }) {
@@ -40,6 +43,8 @@ export function downloadInvoicePdf(args: {
     gymAddress: args.gym?.address ?? null,
     gymPhone: args.gym?.phone ?? null,
     gymEmail: args.gym?.email ?? null,
+    gymGst: args.gym?.gst_number ?? null,
+    gstRate: args.gym?.gst_rate != null ? Number(args.gym.gst_rate) : 18,
     currencySymbol: args.gym?.currency_symbol ?? "₹",
     number: args.invoice.number,
     issuedAt: args.invoice.issued_at,
@@ -63,6 +68,8 @@ export function printInvoicePdf(args: Parameters<typeof downloadInvoicePdf>[0]) 
     gymAddress: args.gym?.address ?? null,
     gymPhone: args.gym?.phone ?? null,
     gymEmail: args.gym?.email ?? null,
+    gymGst: args.gym?.gst_number ?? null,
+    gstRate: args.gym?.gst_rate != null ? Number(args.gym.gst_rate) : 18,
     currencySymbol: args.gym?.currency_symbol ?? "₹",
     number: args.invoice.number,
     issuedAt: args.invoice.issued_at,
@@ -99,6 +106,8 @@ export async function shareInvoicePdfFile(
     gymAddress: args.gym?.address ?? null,
     gymPhone: args.gym?.phone ?? null,
     gymEmail: args.gym?.email ?? null,
+    gymGst: args.gym?.gst_number ?? null,
+    gstRate: args.gym?.gst_rate != null ? Number(args.gym.gst_rate) : 18,
     currencySymbol: args.gym?.currency_symbol ?? "₹",
     number: args.invoice.number,
     issuedAt: args.invoice.issued_at,
@@ -271,6 +280,7 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   }
   if (inv.gymPhone) { doc.text(inv.gymPhone, rightX, fromY); fromY += 12; }
   if (inv.gymEmail) { doc.text(inv.gymEmail, rightX, fromY); fromY += 12; }
+  if (inv.gymGst) { doc.text(`GSTIN: ${inv.gymGst}`, rightX, fromY); fromY += 12; }
 
   // ---------- Items table ----------
   const tableStart = Math.max(leftY, fromY) + 18;
@@ -325,7 +335,7 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   const cardW = 250;
   const cardX = pw - M - cardW;
   const cardY = afterY + 18;
-  const cardH = 116;
+  const cardH = 150;
 
   doc.setFillColor(...CARD_BG);
   doc.setDrawColor(...HAIRLINE);
@@ -345,9 +355,14 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
     if (bold) doc.setFont("helvetica", "bold");
     doc.text(value, valX, ty, { align: "right" });
   };
-  totalRow("Subtotal", cur(inv.subtotal));
+  const rate = inv.gstRate ?? 18;
+  const taxable = Math.round((inv.total / (1 + rate / 100)) * 100) / 100;
+  const gstAmount = Math.round((inv.total - taxable) * 100) / 100;
+  totalRow("Taxable value", cur(taxable));
   ty += 17;
-  totalRow("Total", cur(inv.total), true);
+  totalRow(`GST @ ${rate}% (incl.)`, cur(gstAmount));
+  ty += 17;
+  totalRow("Total (incl. GST)", cur(inv.total), true);
   ty += 17;
   totalRow("Amount paid", cur(inv.amountPaid));
 

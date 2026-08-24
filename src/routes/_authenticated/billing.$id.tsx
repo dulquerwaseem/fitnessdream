@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { MoneyInput } from "@/components/money-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency, fmtDate, fmtDateTime } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtDateTime, gstSplit } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
 import { toast } from "sonner";
 import { ArrowLeft, Download, Plus, Printer, Send } from "lucide-react";
@@ -47,6 +47,7 @@ function InvoiceDetail() {
   if (!inv) return <div>Not found. <Link to="/billing" className="text-primary story-link">Back</Link></div>;
 
   const balance = Number(inv.total) - Number(inv.amount_paid);
+  const gst = gstSplit(inv.total, gym?.gst_rate != null ? Number(gym.gst_rate) : 18);
   const member = inv.members as { full_name?: string; phone?: string; email?: string } | null;
 
   const recordPayment = async () => {
@@ -147,11 +148,15 @@ function InvoiceDetail() {
             <div className="border-t p-5 bg-muted/20">
               <dl className="ml-auto max-w-xs space-y-2 text-sm tabular-nums">
                 <div className="flex items-baseline justify-between gap-8">
-                  <dt className="text-muted-foreground font-normal">Subtotal</dt>
-                  <dd className="font-normal">{fmtCurrency(inv.subtotal)}</dd>
+                  <dt className="text-muted-foreground font-normal">Taxable value</dt>
+                  <dd className="font-normal">{fmtCurrency(gst.taxable)}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-8">
-                  <dt className="text-muted-foreground font-normal">Total</dt>
+                  <dt className="text-muted-foreground font-normal">GST @ {gst.rate}% (incl.)</dt>
+                  <dd className="font-normal">{fmtCurrency(gst.gst)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-8">
+                  <dt className="text-muted-foreground font-normal">Total (incl. GST)</dt>
                   <dd className="font-medium">{fmtCurrency(inv.total)}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-8">
@@ -173,6 +178,9 @@ function InvoiceDetail() {
             <div className="font-semibold">{member?.full_name ?? "Walk-in"}</div>
             {member?.phone && <div className="text-muted-foreground">{member.phone}</div>}
             {member?.email && <div className="text-muted-foreground">{member.email}</div>}
+            {gym?.gst_number && (
+              <div className="pt-2 border-t mt-2 text-xs text-muted-foreground">GSTIN: {gym.gst_number}</div>
+            )}
           </CardContent></Card>
 
 

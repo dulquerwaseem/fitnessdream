@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/page-header";
 import { MoneyInput } from "@/components/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency } from "@/lib/format";
+import { fmtCurrency, gstSplit } from "@/lib/format";
 import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +36,7 @@ function NewInvoicePage() {
   const [saving, setSaving] = useState(false);
 
   const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
+  const gst = gstSplit(subtotal);
 
   const save = async () => {
     if (subtotal <= 0) return toast.error("Add at least one line");
@@ -88,9 +89,19 @@ function NewInvoicePage() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between border-t pt-4">
-            <span className="text-sm text-muted-foreground">Subtotal</span>
-            <span className="text-xl font-display font-bold">{fmtCurrency(subtotal)}</span>
+          <div className="border-t pt-4 space-y-1.5 text-sm tabular-nums">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Taxable value</span>
+              <span>{fmtCurrency(gst.taxable)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">GST @ {gst.rate}% (included)</span>
+              <span>{fmtCurrency(gst.gst)}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-sm text-muted-foreground">Total (incl. GST)</span>
+              <span className="text-xl font-display font-bold">{fmtCurrency(subtotal)}</span>
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
