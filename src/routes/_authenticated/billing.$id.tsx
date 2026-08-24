@@ -147,11 +147,15 @@ function InvoiceDetail() {
             <div className="border-t p-5 bg-muted/20">
               <dl className="ml-auto max-w-xs space-y-2 text-sm tabular-nums">
                 <div className="flex items-baseline justify-between gap-8">
-                  <dt className="text-muted-foreground font-normal">Subtotal</dt>
-                  <dd className="font-normal">{fmtCurrency(inv.subtotal)}</dd>
+                  <dt className="text-muted-foreground font-normal">Taxable value</dt>
+                  <dd className="font-normal">{fmtCurrency(gst.taxable)}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-8">
-                  <dt className="text-muted-foreground font-normal">Total</dt>
+                  <dt className="text-muted-foreground font-normal">GST @ {gst.rate}% (incl.)</dt>
+                  <dd className="font-normal">{fmtCurrency(gst.gst)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-8">
+                  <dt className="text-muted-foreground font-normal">Total (incl. GST)</dt>
                   <dd className="font-medium">{fmtCurrency(inv.total)}</dd>
                 </div>
                 <div className="flex items-baseline justify-between gap-8">
