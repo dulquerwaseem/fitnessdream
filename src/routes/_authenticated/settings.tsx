@@ -405,6 +405,38 @@ function SettingsPage() {
             </Card>
           </div>
 
+          {isAdmin && (
+            <Card className="mt-4 border-destructive/40">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-4 w-4" /> Reset members
+                </CardTitle>
+                <CardDescription>
+                  Removes every member so you can restore a fresh backup. A JSON backup downloads first,
+                  and removed members stay in “Recently deleted” for 30 days so you can restore them anytime.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="border-destructive/50 text-destructive" disabled={resetting} onClick={() => setResetOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> {resetting ? "Removing…" : "Remove all members"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <ConfirmActionDialog
+            open={resetOpen}
+            onOpenChange={setResetOpen}
+            title="Remove all members?"
+            description={"Every member will be removed from the app. A backup file downloads first, and you can restore them from Recently deleted for 30 days."}
+            confirmLabel="Remove all members"
+            typeToConfirm="RESET"
+            askReason
+            reasonLabel="Reason (optional)"
+            onConfirm={resetMembers}
+          />
+
+
           {restore && (
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
