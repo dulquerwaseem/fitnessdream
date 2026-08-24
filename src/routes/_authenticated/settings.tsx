@@ -14,9 +14,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizePhone } from "@/lib/phone";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Download, Upload, Building2, AlertTriangle, LogOut } from "lucide-react";
+import { Download, Upload, Building2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
 import { RecentlyDeleted } from "@/components/recently-deleted";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { useSession } from "@/hooks/use-session";
+import { logAudit } from "@/lib/audit";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -45,6 +48,46 @@ function SettingsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
+  const { isAdmin } = useSession();
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  // Remove all members (soft delete → restorable from Recently deleted for 30 days)
+  const resetMembers = async (reason?: string) => {
+    setResetting(true);
+    try {
+      await exportJson();
+      const { data: ids, error: readErr } = await supabase
+        .from("members").select("id").is("deleted_at", null);
+      if (readErr) throw readErr;
+      const count = ids?.length ?? 0;
+      if (count === 0) { toast.info("No members to remove"); return; }
+
+      const { data: userRes } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("members")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deleted_by: userRes.user?.id ?? null,
+          deleted_reason: reason ?? "Bulk reset before restore",
+        })
+        .is("deleted_at", null);
+      if (error) throw error;
+
+      await logAudit({
+        action: "soft_delete",
+        entity_type: "member",
+        summary: `Bulk reset: removed ${count} members (restorable for 30 days)`,
+        metadata: { count, reason: reason ?? null },
+      });
+      toast.success(`${count} members removed — restorable from Recently deleted`);
+      qc.invalidateQueries();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setResetting(false);
+    }
+  };
 
   // Best-effort auto-purge of records older than 30 days when an admin opens Settings.
   useEffect(() => {
@@ -361,6 +404,38 @@ function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {isAdmin && (
+            <Card className="mt-4 border-destructive/40">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-4 w-4" /> Reset members
+                </CardTitle>
+                <CardDescription>
+                  Removes every member so you can restore a fresh backup. A JSON backup downloads first,
+                  and removed members stay in “Recently deleted” for 30 days so you can restore them anytime.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button variant="outline" className="border-destructive/50 text-destructive" disabled={resetting} onClick={() => setResetOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" /> {resetting ? "Removing…" : "Remove all members"}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          <ConfirmActionDialog
+            open={resetOpen}
+            onOpenChange={setResetOpen}
+            title="Remove all members?"
+            description={"Every member will be removed from the app. A backup file downloads first, and you can restore them from Recently deleted for 30 days."}
+            confirmLabel="Remove all members"
+            typeToConfirm="RESET"
+            askReason
+            reasonLabel="Reason (optional)"
+            onConfirm={resetMembers}
+          />
+
 
           {restore && (
             <Alert className="mt-4">
