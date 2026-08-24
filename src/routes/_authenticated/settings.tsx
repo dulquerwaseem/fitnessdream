@@ -52,7 +52,7 @@ function SettingsPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
 
-  // Remove all members (soft delete → restorable from Recently deleted for 30 days)
+  // Remove all members + their billing/PT records (soft delete → restorable for 30 days)
   const resetMembers = async (reason?: string) => {
     setResetting(true);
     try {
@@ -64,23 +64,26 @@ function SettingsPage() {
       if (count === 0) { toast.info("No members to remove"); return; }
 
       const { data: userRes } = await supabase.auth.getUser();
-      const { error } = await supabase
-        .from("members")
-        .update({
-          deleted_at: new Date().toISOString(),
-          deleted_by: userRes.user?.id ?? null,
-          deleted_reason: reason ?? "Bulk reset before restore",
-        })
-        .is("deleted_at", null);
-      if (error) throw error;
+      const patch = {
+        deleted_at: new Date().toISOString(),
+        deleted_by: userRes.user?.id ?? null,
+        deleted_reason: reason ?? "Bulk reset before restore",
+      };
+
+      // Related records first, then members
+      const tables = ["pt_sessions", "pt_enrollments", "payments", "invoices", "members"] as const;
+      for (const t of tables) {
+        const { error } = await supabase.from(t).update(patch).is("deleted_at", null);
+        if (error) throw error;
+      }
 
       await logAudit({
         action: "soft_delete",
         entity_type: "member",
-        summary: `Bulk reset: removed ${count} members (restorable for 30 days)`,
+        summary: `Bulk reset: removed ${count} members plus their invoices, payments and PT records (restorable for 30 days)`,
         metadata: { count, reason: reason ?? null },
       });
-      toast.success(`${count} members removed — restorable from Recently deleted`);
+      toast.success(`${count} members and their invoices/payments removed — restorable from Recently deleted`);
       qc.invalidateQueries();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Reset failed");
@@ -88,6 +91,7 @@ function SettingsPage() {
       setResetting(false);
     }
   };
+
 
   // Best-effort auto-purge of records older than 30 days when an admin opens Settings.
   useEffect(() => {
@@ -414,9 +418,10 @@ function SettingsPage() {
                   <Trash2 className="h-4 w-4" /> Reset members
                 </CardTitle>
                 <CardDescription>
-                  Removes every member so you can restore a fresh backup. A JSON backup downloads first,
-                  and removed members stay in “Recently deleted” for 30 days so you can restore them anytime.
+                  Removes every member along with their invoices, payments and PT records so you can restore a fresh backup.
+                  A JSON backup downloads first, and everything stays in “Recently deleted” for 30 days so you can restore it anytime.
                 </CardDescription>
+
               </CardHeader>
               <CardContent>
                 <Button variant="outline" className="border-destructive/50 text-destructive" disabled={resetting} onClick={() => setResetOpen(true)}>
