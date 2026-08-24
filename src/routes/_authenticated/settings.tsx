@@ -14,9 +14,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizePhone } from "@/lib/phone";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
-import { Download, Upload, Building2, AlertTriangle, LogOut } from "lucide-react";
+import { Download, Upload, Building2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
 import { RecentlyDeleted } from "@/components/recently-deleted";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { useSession } from "@/hooks/use-session";
+import { logAudit } from "@/lib/audit";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
