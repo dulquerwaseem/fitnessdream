@@ -18,7 +18,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO } from "@/lib/format";
+import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO, localISO } from "@/lib/format";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf, printInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
@@ -54,7 +54,7 @@ function computeStatus(m: any): string {
   if (!m.expiry_date) return "expired";
   if (m.expiry_date < today) return "expired";
   const soon = new Date(); soon.setDate(soon.getDate() + 7);
-  if (m.expiry_date <= soon.toISOString().slice(0, 10)) return "expiring_soon";
+  if (m.expiry_date <= localISO(soon)) return "expiring_soon";
   return "active";
 }
 
@@ -423,7 +423,7 @@ function MemberDetail() {
       sessions_total: pkg.sessions,
       sessions_used: 0,
       starts_on: todayISO(),
-      expires_on: expiresOn.toISOString().slice(0, 10),
+      expires_on: localISO(expiresOn),
     });
     const total = Number(ptTotal);
     const paid = Number(ptPaid);

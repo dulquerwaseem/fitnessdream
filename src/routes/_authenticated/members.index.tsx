@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { fmtCurrency, fmtDate, initials } from "@/lib/format";
+import { fmtCurrency, fmtDate, initials, localISO } from "@/lib/format";
 import { Plus, Search, Users } from "lucide-react";
 import { z } from "zod";
 import { useDebouncedValue } from "@/hooks/use-debounced";
@@ -55,7 +55,7 @@ function MembersPage() {
       let query = supabase.from("members_with_status").select("*");
       if (status === "new_mtd") {
         const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const monthStart = localISO(new Date(now.getFullYear(), now.getMonth(), 1));
         query = query.gte("start_date", monthStart);
       } else if (status !== "all") {
         query = query.eq("status", status);

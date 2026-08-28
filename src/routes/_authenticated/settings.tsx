@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizePhone } from "@/lib/phone";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, todayISO } from "@/lib/format";
 import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
@@ -277,8 +277,8 @@ function SettingsPage() {
       total_fee: Number(m.total_fee ?? 0),
       amount_paid: Number(m.amount_paid ?? 0),
       balance_due: Math.max(0, Number(m.total_fee ?? 0) - Number(m.amount_paid ?? 0)),
-      start_date: m.start_date || new Date().toISOString().slice(0,10),
-      expiry_date: m.expiry_date || new Date().toISOString().slice(0,10),
+      start_date: m.start_date || todayISO(),
+      expiry_date: m.expiry_date || todayISO(),
       notes: m.notes || null,
       frozen_at: m.frozen_at || null,
       ...(m.created_at ? { created_at: m.created_at } : {}),
