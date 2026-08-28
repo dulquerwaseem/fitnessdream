@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtDate, fmtDateTime, todayISO } from "@/lib/format";
+import { fmtDate, fmtDateTime, todayISO, localISO } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Dumbbell, CalendarClock } from "lucide-react";
 import { z } from "zod";
@@ -88,7 +88,7 @@ function PTPage() {
       sessions_total: pkg.sessions,
       sessions_used: 0,
       starts_on: form.starts_on,
-      expires_on: expires.toISOString().slice(0, 10),
+      expires_on: localISO(expires),
     });
     if (error) return toast.error(error.message);
     toast.success("Enrollment created");

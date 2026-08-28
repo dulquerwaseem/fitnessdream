@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/page-header";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fmtCurrency, fmtDate } from "@/lib/format";
+import { fmtCurrency, fmtDate, localISO } from "@/lib/format";
 import { downloadInvoicePdf, printInvoicePdf, shareInvoicePdfFile } from "@/lib/pdf";
 import { useSession } from "@/hooks/use-session";
 import { toast } from "sonner";
@@ -212,7 +212,7 @@ function BillingFinancialOverview() {
       const days: Record<string, number> = {};
       for (let i = 29; i >= 0; i--) {
         const d = new Date(); d.setDate(d.getDate() - i);
-        days[d.toISOString().slice(0, 10)] = 0;
+        days[localISO(d)] = 0;
       }
       (revenue.data ?? []).forEach((r) => {
         const k = String(r.paid_at).slice(0, 10);

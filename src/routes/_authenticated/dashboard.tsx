@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, localISO } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
   Users, AlertTriangle, UserPlus, ArrowRight, Plus, Receipt, MessageCircle,
@@ -29,9 +29,9 @@ function useDashboard() {
     queryKey: ["dashboard-ops"],
     queryFn: async () => {
       const now = new Date();
-      const monthStartDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
-      const in7 = new Date(now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+      const monthStartDate = localISO(new Date(now.getFullYear(), now.getMonth(), 1));
+      const today = localISO(now);
+      const in7 = localISO(new Date(now.getTime() + 7 * 86400000));
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 

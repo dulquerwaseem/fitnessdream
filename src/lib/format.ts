@@ -20,14 +20,24 @@ export function fmtDateTime(d: string | Date | null | undefined): string {
   });
 }
 
+/** Calendar date of a Date in the *local* timezone (yyyy-mm-dd).
+ *  Never use toISOString() for dates — it shifts to UTC and can return
+ *  the previous day for timezones ahead of UTC (e.g. IST). */
+export function localISO(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function addMonthsISO(startISO: string, months: number): string {
   const d = new Date(startISO);
   d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
+  return localISO(d);
 }
 
 export function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISO();
 }
 
 export function initials(name: string | null | undefined): string {

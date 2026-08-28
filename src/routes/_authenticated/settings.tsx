@@ -12,11 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizePhone } from "@/lib/phone";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, todayISO } from "@/lib/format";
 import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
 import { RecentlyDeleted } from "@/components/recently-deleted";
+import { DuplicateMembers } from "@/components/duplicate-members";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { useSession } from "@/hooks/use-session";
 import { logAudit } from "@/lib/audit";
@@ -180,6 +181,7 @@ function SettingsPage() {
     allValid: (BackupMember & { phone_normalized: string })[];
     toUpdate: FlaggedRow[];
     dupInFile: FlaggedRow[];
+    possibleDup: FlaggedRow[];
     invalid: FlaggedRow[];
   } | null>(null);
   const [restoring, setRestoring] = useState(false);
@@ -189,10 +191,12 @@ function SettingsPage() {
     inserted: number;
     skippedExisting: number;
     skippedDupInFile: number;
+    skippedPossibleDup: number;
     skippedInvalid: number;
     invalid: FlaggedRow[];
     skippedExistingList: FlaggedRow[];
     dupInFile: FlaggedRow[];
+    possibleDup: FlaggedRow[];
   } | null>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,17 +241,36 @@ function SettingsPage() {
 
       // A repeated phone is NOT a duplicate (families share numbers).
       // Only identical name + phone + expiry counts as a duplicate row.
+      // Same name + phone with expiry dates within 30 days is a *possible*
+      // duplicate (e.g. the same person entered twice a few days apart).
       const seen = new Set<string>();
+      const keptExpiry = new Map<string, string[]>();
       const toAdd: (BackupMember & { phone_normalized: string })[] = [];
       const toUpdate: FlaggedRow[] = [];
       const dupInFile: FlaggedRow[] = [];
+      const possibleDup: FlaggedRow[] = [];
+      const daysApart = (a: string, b: string) =>
+        Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
       for (const m of valid) {
-        const key = `${m.full_name.trim().toLowerCase()}|${m.phone_normalized}|${m.expiry_date ?? ""}`;
+        const person = `${m.full_name.trim().toLowerCase()}|${m.phone_normalized}`;
+        const key = `${person}|${m.expiry_date ?? ""}`;
         if (seen.has(key)) {
           dupInFile.push({ name: m.full_name, phone: m.phone, reason: "identical record repeated in file" });
           continue;
         }
+        const near = m.expiry_date
+          ? (keptExpiry.get(person) ?? []).find(e => e && daysApart(e, m.expiry_date!) <= 30)
+          : undefined;
+        if (near) {
+          possibleDup.push({
+            name: m.full_name,
+            phone: m.phone,
+            reason: `same person also expires ${fmtDate(near)} — review before inserting`,
+          });
+          continue;
+        }
         seen.add(key);
+        keptExpiry.set(person, [...(keptExpiry.get(person) ?? []), m.expiry_date ?? ""]);
         if (existingSet.has(m.phone_normalized)) {
           toUpdate.push({ name: m.full_name, phone: m.phone, reason: "already exists in database" });
         } else {
@@ -255,7 +278,7 @@ function SettingsPage() {
         }
       }
       setImportResult(null);
-      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, invalid });
+      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, possibleDup, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -277,8 +300,8 @@ function SettingsPage() {
       total_fee: Number(m.total_fee ?? 0),
       amount_paid: Number(m.amount_paid ?? 0),
       balance_due: Math.max(0, Number(m.total_fee ?? 0) - Number(m.amount_paid ?? 0)),
-      start_date: m.start_date || new Date().toISOString().slice(0,10),
-      expiry_date: m.expiry_date || new Date().toISOString().slice(0,10),
+      start_date: m.start_date || todayISO(),
+      expiry_date: m.expiry_date || todayISO(),
       notes: m.notes || null,
       frozen_at: m.frozen_at || null,
       ...(m.created_at ? { created_at: m.created_at } : {}),
@@ -300,10 +323,12 @@ function SettingsPage() {
       inserted,
       skippedExisting: forceAll ? 0 : restore.toUpdate.length,
       skippedDupInFile: forceAll ? 0 : restore.dupInFile.length,
+      skippedPossibleDup: forceAll ? 0 : restore.possibleDup.length,
       skippedInvalid: restore.invalid.length,
       invalid: restore.invalid,
       skippedExistingList: forceAll ? [] : restore.toUpdate,
       dupInFile: forceAll ? [] : restore.dupInFile,
+      possibleDup: forceAll ? [] : restore.possibleDup,
     });
     setRestore(null);
     setForceAll(false);
@@ -453,6 +478,8 @@ function SettingsPage() {
             </Card>
           )}
 
+          {isAdmin && <DuplicateMembers />}
+
           <ConfirmActionDialog
             open={resetOpen}
             onOpenChange={setResetOpen}
@@ -475,6 +502,7 @@ function SettingsPage() {
                   <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
                   <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
                   <strong>{restore.dupInFile.length}</strong> identical records repeated ·{" "}
+                  <strong>{restore.possibleDup.length}</strong> possible duplicates ·{" "}
                   <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
 
@@ -485,6 +513,18 @@ function SettingsPage() {
                     </summary>
                     <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
                       {restore.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.possibleDup.length > 0 && (
+                  <details className="text-xs" open>
+                    <summary className="cursor-pointer font-medium text-warning">
+                      Possible duplicates — review ({restore.possibleDup.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.possibleDup.map((r, i) => (
                         <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
                       ))}
                     </ul>
@@ -534,13 +574,26 @@ function SettingsPage() {
             <Alert className="mt-4">
               <AlertTitle>Import audit log</AlertTitle>
               <AlertDescription className="space-y-3">
-                <div className="text-sm grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="text-sm grid grid-cols-2 sm:grid-cols-6 gap-2">
                   <div><div className="text-xs text-muted-foreground">Read from file</div><div className="font-semibold">{importResult.read}</div></div>
                   <div><div className="text-xs text-muted-foreground">Inserted</div><div className="font-semibold text-success">{importResult.inserted}</div></div>
                   <div><div className="text-xs text-muted-foreground">Skipped (exists)</div><div className="font-semibold">{importResult.skippedExisting}</div></div>
                   <div><div className="text-xs text-muted-foreground">Dup in file</div><div className="font-semibold">{importResult.skippedDupInFile}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Possible dup</div><div className="font-semibold text-warning">{importResult.skippedPossibleDup}</div></div>
                   <div><div className="text-xs text-muted-foreground">Invalid</div><div className="font-semibold text-destructive">{importResult.skippedInvalid}</div></div>
                 </div>
+                {importResult.possibleDup.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium text-warning">
+                      Skipped — possible duplicate ({importResult.possibleDup.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.possibleDup.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 {importResult.invalid.length > 0 && (
                   <details className="text-xs" open>
                     <summary className="cursor-pointer font-medium text-destructive">
