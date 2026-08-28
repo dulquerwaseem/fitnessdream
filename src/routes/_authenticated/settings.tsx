@@ -180,6 +180,7 @@ function SettingsPage() {
     allValid: (BackupMember & { phone_normalized: string })[];
     toUpdate: FlaggedRow[];
     dupInFile: FlaggedRow[];
+    possibleDup: FlaggedRow[];
     invalid: FlaggedRow[];
   } | null>(null);
   const [restoring, setRestoring] = useState(false);
@@ -189,10 +190,12 @@ function SettingsPage() {
     inserted: number;
     skippedExisting: number;
     skippedDupInFile: number;
+    skippedPossibleDup: number;
     skippedInvalid: number;
     invalid: FlaggedRow[];
     skippedExistingList: FlaggedRow[];
     dupInFile: FlaggedRow[];
+    possibleDup: FlaggedRow[];
   } | null>(null);
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
