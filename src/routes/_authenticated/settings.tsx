@@ -42,6 +42,8 @@ type BackupMember = {
   start_date?: string;
   expiry_date?: string;
   notes?: string;
+  frozen_at?: string | null;
+  created_at?: string | null;
 };
 
 function SettingsPage() {
