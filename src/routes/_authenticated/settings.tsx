@@ -42,6 +42,8 @@ type BackupMember = {
   start_date?: string;
   expiry_date?: string;
   notes?: string;
+  frozen_at?: string | null;
+  created_at?: string | null;
 };
 
 function SettingsPage() {
@@ -218,22 +220,34 @@ function SettingsPage() {
         valid.push({ ...m, phone_normalized });
       }
 
-      const phones = valid.map(m => m.phone_normalized);
-      const { data: existing } = phones.length
-        ? await supabase.from("members").select("phone_normalized").in("phone_normalized", phones)
-        : { data: [] as { phone_normalized: string }[] };
-      const existingSet = new Set((existing ?? []).map(x => x.phone_normalized));
+      // Only live (non-deleted) members count as "already exists".
+      // Fetch in chunks so the response row cap can't shorten the list.
+      const phones = Array.from(new Set(valid.map(m => m.phone_normalized)));
+      const existingSet = new Set<string>();
+      for (let i = 0; i < phones.length; i += 200) {
+        const chunk = phones.slice(i, i + 200);
+        const { data: existing, error } = await supabase
+          .from("members")
+          .select("phone_normalized")
+          .is("deleted_at", null)
+          .in("phone_normalized", chunk);
+        if (error) throw error;
+        for (const x of existing ?? []) if (x.phone_normalized) existingSet.add(x.phone_normalized);
+      }
 
+      // A repeated phone is NOT a duplicate (families share numbers).
+      // Only identical name + phone + expiry counts as a duplicate row.
       const seen = new Set<string>();
       const toAdd: (BackupMember & { phone_normalized: string })[] = [];
       const toUpdate: FlaggedRow[] = [];
       const dupInFile: FlaggedRow[] = [];
       for (const m of valid) {
-        if (seen.has(m.phone_normalized)) {
-          dupInFile.push({ name: m.full_name, phone: m.phone, reason: "duplicate phone in file" });
+        const key = `${m.full_name.trim().toLowerCase()}|${m.phone_normalized}|${m.expiry_date ?? ""}`;
+        if (seen.has(key)) {
+          dupInFile.push({ name: m.full_name, phone: m.phone, reason: "identical record repeated in file" });
           continue;
         }
-        seen.add(m.phone_normalized);
+        seen.add(key);
         if (existingSet.has(m.phone_normalized)) {
           toUpdate.push({ name: m.full_name, phone: m.phone, reason: "already exists in database" });
         } else {
@@ -266,12 +280,19 @@ function SettingsPage() {
       start_date: m.start_date || new Date().toISOString().slice(0,10),
       expiry_date: m.expiry_date || new Date().toISOString().slice(0,10),
       notes: m.notes || null,
+      frozen_at: m.frozen_at || null,
+      ...(m.created_at ? { created_at: m.created_at } : {}),
     }));
     let inserted = 0;
-    if (rows.length) {
-      const { error, count } = await supabase.from("members").insert(rows, { count: "exact" });
-      if (error) { setRestoring(false); return toast.error(error.message); }
-      inserted = count ?? rows.length;
+    for (let i = 0; i < rows.length; i += 200) {
+      const chunk = rows.slice(i, i + 200);
+      const { error, count } = await supabase.from("members").insert(chunk, { count: "exact" });
+      if (error) {
+        setRestoring(false);
+        toast.error(`${error.message} (inserted ${inserted} before failing)`);
+        return;
+      }
+      inserted += count ?? chunk.length;
     }
     setRestoring(false);
     setImportResult({
@@ -289,6 +310,7 @@ function SettingsPage() {
     toast.success(`Restored ${inserted} members`);
     qc.invalidateQueries();
   };
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -402,7 +424,7 @@ function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Restore</CardTitle>
-                <CardDescription>Import from a JSON backup. Duplicates are detected by phone.</CardDescription>
+                <CardDescription>Import from a JSON backup. Existing members are matched by phone; deleted members do not block a restore.</CardDescription>
               </CardHeader>
               <CardContent>
                 <input ref={fileRef} type="file" accept="application/json" onChange={onFile} className="hidden" />
@@ -452,7 +474,7 @@ function SettingsPage() {
                 <div className="text-sm">
                   <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
                   <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
-                  <strong>{restore.dupInFile.length}</strong> duplicate phones in file ·{" "}
+                  <strong>{restore.dupInFile.length}</strong> identical records repeated ·{" "}
                   <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
 
@@ -471,7 +493,7 @@ function SettingsPage() {
                 {restore.dupInFile.length > 0 && (
                   <details className="text-xs">
                     <summary className="cursor-pointer font-medium">
-                      Duplicate phones in file ({restore.dupInFile.length})
+                      Identical records repeated ({restore.dupInFile.length})
                     </summary>
                     <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
                       {restore.dupInFile.map((r, i) => (
@@ -534,7 +556,7 @@ function SettingsPage() {
                 {importResult.dupInFile.length > 0 && (
                   <details className="text-xs">
                     <summary className="cursor-pointer font-medium">
-                      Skipped — duplicate phone in file ({importResult.dupInFile.length})
+                      Skipped — identical record repeated ({importResult.dupInFile.length})
                     </summary>
                     <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
                       {importResult.dupInFile.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
