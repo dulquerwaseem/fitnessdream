@@ -322,10 +322,12 @@ function SettingsPage() {
       inserted,
       skippedExisting: forceAll ? 0 : restore.toUpdate.length,
       skippedDupInFile: forceAll ? 0 : restore.dupInFile.length,
+      skippedPossibleDup: forceAll ? 0 : restore.possibleDup.length,
       skippedInvalid: restore.invalid.length,
       invalid: restore.invalid,
       skippedExistingList: forceAll ? [] : restore.toUpdate,
       dupInFile: forceAll ? [] : restore.dupInFile,
+      possibleDup: forceAll ? [] : restore.possibleDup,
     });
     setRestore(null);
     setForceAll(false);
