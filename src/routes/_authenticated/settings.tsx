@@ -474,7 +474,7 @@ function SettingsPage() {
                 <div className="text-sm">
                   <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
                   <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
-                  <strong>{restore.dupInFile.length}</strong> duplicate phones in file ·{" "}
+                  <strong>{restore.dupInFile.length}</strong> identical records repeated ·{" "}
                   <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
 
@@ -493,7 +493,7 @@ function SettingsPage() {
                 {restore.dupInFile.length > 0 && (
                   <details className="text-xs">
                     <summary className="cursor-pointer font-medium">
-                      Duplicate phones in file ({restore.dupInFile.length})
+                      Identical records repeated ({restore.dupInFile.length})
                     </summary>
                     <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
                       {restore.dupInFile.map((r, i) => (
@@ -556,7 +556,7 @@ function SettingsPage() {
                 {importResult.dupInFile.length > 0 && (
                   <details className="text-xs">
                     <summary className="cursor-pointer font-medium">
-                      Skipped — duplicate phone in file ({importResult.dupInFile.length})
+                      Skipped — identical record repeated ({importResult.dupInFile.length})
                     </summary>
                     <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
                       {importResult.dupInFile.map((r, i) => (<li key={i}>{r.name} — {r.phone}</li>))}
