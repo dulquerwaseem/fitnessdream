@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, localISO } from "@/lib/format";
 import { openWhatsApp, renderTemplate } from "@/lib/phone";
 import {
   Users, AlertTriangle, UserPlus, ArrowRight, Plus, Receipt, MessageCircle,
