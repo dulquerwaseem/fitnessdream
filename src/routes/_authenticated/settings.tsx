@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Download, Upload, Building2, AlertTriangle, LogOut, Trash2 } from "lucide-react";
 import { LeadStagesSettings, LeadTemplatesSettings } from "@/components/lead-settings";
 import { RecentlyDeleted } from "@/components/recently-deleted";
+import { DuplicateMembers } from "@/components/duplicate-members";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { useSession } from "@/hooks/use-session";
 import { logAudit } from "@/lib/audit";
@@ -476,6 +477,8 @@ function SettingsPage() {
               </CardContent>
             </Card>
           )}
+
+          {isAdmin && <DuplicateMembers />}
 
           <ConfirmActionDialog
             open={resetOpen}
