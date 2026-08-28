@@ -240,17 +240,36 @@ function SettingsPage() {
 
       // A repeated phone is NOT a duplicate (families share numbers).
       // Only identical name + phone + expiry counts as a duplicate row.
+      // Same name + phone with expiry dates within 30 days is a *possible*
+      // duplicate (e.g. the same person entered twice a few days apart).
       const seen = new Set<string>();
+      const keptExpiry = new Map<string, string[]>();
       const toAdd: (BackupMember & { phone_normalized: string })[] = [];
       const toUpdate: FlaggedRow[] = [];
       const dupInFile: FlaggedRow[] = [];
+      const possibleDup: FlaggedRow[] = [];
+      const daysApart = (a: string, b: string) =>
+        Math.abs(new Date(a).getTime() - new Date(b).getTime()) / 86400000;
       for (const m of valid) {
-        const key = `${m.full_name.trim().toLowerCase()}|${m.phone_normalized}|${m.expiry_date ?? ""}`;
+        const person = `${m.full_name.trim().toLowerCase()}|${m.phone_normalized}`;
+        const key = `${person}|${m.expiry_date ?? ""}`;
         if (seen.has(key)) {
           dupInFile.push({ name: m.full_name, phone: m.phone, reason: "identical record repeated in file" });
           continue;
         }
+        const near = m.expiry_date
+          ? (keptExpiry.get(person) ?? []).find(e => e && daysApart(e, m.expiry_date!) <= 30)
+          : undefined;
+        if (near) {
+          possibleDup.push({
+            name: m.full_name,
+            phone: m.phone,
+            reason: `same person also expires ${fmtDate(near)} — review before inserting`,
+          });
+          continue;
+        }
         seen.add(key);
+        keptExpiry.set(person, [...(keptExpiry.get(person) ?? []), m.expiry_date ?? ""]);
         if (existingSet.has(m.phone_normalized)) {
           toUpdate.push({ name: m.full_name, phone: m.phone, reason: "already exists in database" });
         } else {
@@ -258,7 +277,7 @@ function SettingsPage() {
         }
       }
       setImportResult(null);
-      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, invalid });
+      setRestore({ totalInFile, toAdd, allValid: valid, toUpdate, dupInFile, possibleDup, invalid });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
