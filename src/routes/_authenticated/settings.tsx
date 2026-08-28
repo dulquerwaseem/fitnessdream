@@ -499,6 +499,7 @@ function SettingsPage() {
                   <strong>{restore.toAdd.length}</strong> new to insert ·{" "}
                   <strong>{restore.toUpdate.length}</strong> already in database (skip) ·{" "}
                   <strong>{restore.dupInFile.length}</strong> identical records repeated ·{" "}
+                  <strong>{restore.possibleDup.length}</strong> possible duplicates ·{" "}
                   <strong>{restore.invalid.length}</strong> missing required fields
                 </div>
 
@@ -509,6 +510,18 @@ function SettingsPage() {
                     </summary>
                     <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
                       {restore.invalid.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {restore.possibleDup.length > 0 && (
+                  <details className="text-xs" open>
+                    <summary className="cursor-pointer font-medium text-warning">
+                      Possible duplicates — review ({restore.possibleDup.length})
+                    </summary>
+                    <ul className="mt-2 max-h-40 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {restore.possibleDup.map((r, i) => (
                         <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
                       ))}
                     </ul>
