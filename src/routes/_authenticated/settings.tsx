@@ -571,13 +571,26 @@ function SettingsPage() {
             <Alert className="mt-4">
               <AlertTitle>Import audit log</AlertTitle>
               <AlertDescription className="space-y-3">
-                <div className="text-sm grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="text-sm grid grid-cols-2 sm:grid-cols-6 gap-2">
                   <div><div className="text-xs text-muted-foreground">Read from file</div><div className="font-semibold">{importResult.read}</div></div>
                   <div><div className="text-xs text-muted-foreground">Inserted</div><div className="font-semibold text-success">{importResult.inserted}</div></div>
                   <div><div className="text-xs text-muted-foreground">Skipped (exists)</div><div className="font-semibold">{importResult.skippedExisting}</div></div>
                   <div><div className="text-xs text-muted-foreground">Dup in file</div><div className="font-semibold">{importResult.skippedDupInFile}</div></div>
+                  <div><div className="text-xs text-muted-foreground">Possible dup</div><div className="font-semibold text-warning">{importResult.skippedPossibleDup}</div></div>
                   <div><div className="text-xs text-muted-foreground">Invalid</div><div className="font-semibold text-destructive">{importResult.skippedInvalid}</div></div>
                 </div>
+                {importResult.possibleDup.length > 0 && (
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-medium text-warning">
+                      Skipped — possible duplicate ({importResult.possibleDup.length})
+                    </summary>
+                    <ul className="mt-2 max-h-56 overflow-auto space-y-0.5 pl-4 list-disc">
+                      {importResult.possibleDup.map((r, i) => (
+                        <li key={i}>{r.name} — {r.phone} <span className="text-muted-foreground">({r.reason})</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 {importResult.invalid.length > 0 && (
                   <details className="text-xs" open>
                     <summary className="cursor-pointer font-medium text-destructive">
