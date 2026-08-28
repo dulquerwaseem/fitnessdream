@@ -424,7 +424,7 @@ function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Restore</CardTitle>
-                <CardDescription>Import from a JSON backup. Duplicates are detected by phone.</CardDescription>
+                <CardDescription>Import from a JSON backup. Existing members are matched by phone; deleted members do not block a restore.</CardDescription>
               </CardHeader>
               <CardContent>
                 <input ref={fileRef} type="file" accept="application/json" onChange={onFile} className="hidden" />
