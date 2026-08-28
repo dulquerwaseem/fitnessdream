@@ -1,20 +1,22 @@
-## Goal
+## What I found
 
-Let the restore action insert every valid row from the JSON backup, bypassing the "already exists in database" and "duplicate phone in file" skips, so the user can bring in all 363 records and clean up duplicates afterward.
+Your backup file contains **460 member records**, of which **388 are active** (not expired, none frozen). Two things in the restore tool are dropping most of them:
 
-## Change
+1. **The "already exists" check counts deleted members.** Your database currently holds **1,808 member rows that are all in Recently Deleted** (from the earlier resets). The restore preview checks phone numbers against *every* row in the table, including deleted ones — so almost every record in your file is judged "already exists in database" and skipped. That is the main reason only a fraction came in.
+2. **Shared phone numbers get dropped.** 23 phone numbers appear on more than one member in the file (family/shared numbers). The restore keeps only the first of each, silently removing 24 records — 18 of them active. So even a clean restore would give 370 active, not 388.
 
-Edit `src/routes/_authenticated/settings.tsx` only. No schema or business-logic changes elsewhere.
+Two smaller gaps: the restore also ignores `frozen_at` and the original join date (`created_at`), and it inserts all rows in one request, which is fragile for large files.
 
-1. Add a **"Force insert all (ignore duplicates)"** checkbox inside the restore preview alert (next to the Restore/Cancel buttons).
-2. When checked:
-   - The insert set becomes every valid row (`toAdd` + `toUpdate` + `dupInFile`), i.e. all 363 minus rows with missing name/phone.
-   - The Restore button label updates live to `Restore N members` reflecting that count.
-   - Rows still get `phone_normalized` computed the same way; nothing else in the row mapping changes.
-3. The audit log after the run reports what was actually inserted vs. what was force-inserted-despite-existing / force-inserted-despite-dup-in-file, so the user can find the duplicates to clean up later.
-4. Unchecked behavior is unchanged (current dedup preview + insert).
+## Fix
 
-## Notes
+Edit `src/routes/_authenticated/settings.tsx` (restore logic only, no schema changes):
 
-- The `members` table has no unique constraint on `phone_normalized`, so duplicate inserts will succeed and create real duplicate rows — that matches the user's stated intent ("restore as-is, correct later").
-- No changes to dashboard stats, RLS, or the leads module.
+1. **Ignore deleted rows when detecting existing members** — add `deleted_at is null` to the phone lookup, and fetch it in chunks so the 1,000-row response cap can't silently shorten the list.
+2. **Stop treating a repeated phone as a duplicate.** Only flag a record as a duplicate when name + phone + expiry date all match another record in the file. Shared numbers with different people are imported normally.
+3. **Preserve original data** — carry over `frozen_at` and the original `created_at` so the member's real join date and frozen state survive the restore.
+4. **Insert in batches of 200** with a running count, so a 460-record file restores reliably and the audit result reports the true inserted count.
+5. **Preview accuracy** — the preview line and Restore button will now show the real number (expected: 460 read, 0 already-in-database, ~0 duplicates, 460 to insert), and the audit log keeps listing every skipped record with the reason.
+
+## Before you restore
+
+The 1,808 deleted member rows stay in Recently Deleted for 30 days. After this fix they no longer block the restore, so you can leave them alone — but if you want a truly clean table, tell me and I'll add a "permanently clear deleted members" action for admins.
