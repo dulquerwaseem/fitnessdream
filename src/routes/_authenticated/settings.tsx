@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/page-header";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { normalizePhone } from "@/lib/phone";
@@ -374,7 +375,16 @@ function SettingsPage() {
               <div className="space-y-2 sm:col-span-2"><Label>Address</Label><Textarea value={gymForm.address} onChange={(e) => setGymForm(f => ({...f, address: e.target.value}))} /></div>
               <div className="space-y-2"><Label>Currency symbol</Label><Input value={gymForm.currency_symbol} onChange={(e) => setGymForm(f => ({...f, currency_symbol: e.target.value}))} /></div>
               <div className="space-y-2"><Label>GST number (GSTIN)</Label><Input value={gymForm.gst_number} onChange={(e) => setGymForm(f => ({...f, gst_number: e.target.value.toUpperCase()}))} /></div>
-              <div className="space-y-2"><Label>GST rate % (inclusive)</Label><Input value={gymForm.gst_rate} onChange={(e) => setGymForm(f => ({...f, gst_rate: e.target.value}))} /></div>
+              <div className="space-y-2">
+                <Label>GST rate (inclusive)</Label>
+                <Select value={gymForm.gst_rate} onValueChange={(v) => setGymForm(f => ({...f, gst_rate: v}))}>
+                  <SelectTrigger><SelectValue placeholder="Select GST rate" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5% (inclusive)</SelectItem>
+                    <SelectItem value="18">18% (inclusive)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label>WhatsApp country code</Label><Input value={gymForm.whatsapp_country_code} onChange={(e) => setGymForm(f => ({...f, whatsapp_country_code: e.target.value}))} /></div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Invoice terms & conditions</Label>
