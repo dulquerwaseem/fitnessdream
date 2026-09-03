@@ -41,7 +41,7 @@ function NewInvoicePage() {
   const [saving, setSaving] = useState(false);
 
   const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
-  const gst = gstSplit(subtotal);
+  const gst = gstSplit(subtotal, gym?.gst_rate != null ? Number(gym.gst_rate) : 18);
 
   const save = async () => {
     if (subtotal <= 0) return toast.error("Add at least one line");
