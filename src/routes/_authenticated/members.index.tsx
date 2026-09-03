@@ -55,8 +55,8 @@ function MembersPage() {
       let query = supabase.from("members_with_status").select("*");
       if (status === "new_mtd") {
         const now = new Date();
-        const monthStart = localISO(new Date(now.getFullYear(), now.getMonth(), 1));
-        query = query.gte("start_date", monthStart);
+        const monthStartTs = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        query = query.gte("created_at", monthStartTs);
       } else if (status !== "all") {
         query = query.eq("status", status);
       }

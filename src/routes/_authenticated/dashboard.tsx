@@ -29,7 +29,7 @@ function useDashboard() {
     queryKey: ["dashboard-ops"],
     queryFn: async () => {
       const now = new Date();
-      const monthStartDate = localISO(new Date(now.getFullYear(), now.getMonth(), 1));
+      const monthStartTs = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
       const today = localISO(now);
       const in7 = localISO(new Date(now.getTime() + 7 * 86400000));
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -38,7 +38,7 @@ function useDashboard() {
       const [members, expiring, joins, frozen, ptToday, duePayments, stagesRes, leadsRes] = await Promise.all([
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today),
         supabase.from("members").select("id, full_name, expiry_date, phone, frozen_at").is("deleted_at", null).is("frozen_at", null).gte("expiry_date", today).lte("expiry_date", in7).order("expiry_date"),
-        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("start_date", monthStartDate),
+        supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("created_at", monthStartTs),
         supabase.from("members").select("id", { count: "exact", head: true }).is("deleted_at", null).not("frozen_at", "is", null),
         supabase.from("pt_sessions").select("id", { count: "exact", head: true }).is("deleted_at", null).gte("scheduled_at", todayStart).lt("scheduled_at", todayEnd),
         supabase.from("invoices").select("id", { count: "exact", head: true }).is("deleted_at", null).neq("status", "paid").lte("issued_at", todayEnd),
