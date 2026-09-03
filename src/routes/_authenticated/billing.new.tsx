@@ -27,6 +27,11 @@ function NewInvoicePage() {
     queryKey: ["members-brief"],
     queryFn: async () => (await supabase.from("members").select("id, full_name, phone").is("deleted_at", null).order("full_name")).data ?? [],
   });
+  const { data: gym } = useQuery({
+    queryKey: ["gym-settings"],
+    queryFn: async () => (await supabase.from("gym_settings").select("*").maybeSingle()).data,
+  });
+
 
   const [memberId, setMemberId] = useState("");
   const [lines, setLines] = useState<Line[]>([{ description: "Membership", qty: 1, unit_price: 0 }]);
