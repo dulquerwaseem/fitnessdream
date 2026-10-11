@@ -24,10 +24,17 @@ export type InvoicePdfInput = {
   notes?: string | null;
   terms?: string | null;
   paymentMethods?: string[];
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  paidCash?: number;
+  paidUpi?: number;
 };
 
-export function downloadInvoicePdf(args: {
-  invoice: { number: string; issued_at: string; subtotal: number; total: number; amount_paid: number; notes: string | null };
+type InvoiceArgs = {
+  invoice: {
+    number: string; issued_at: string; subtotal: number; total: number; amount_paid: number; notes: string | null;
+    period_start?: string | null; period_end?: string | null; paid_cash?: number | string | null; paid_upi?: number | string | null;
+  };
   items: Array<{ description: string; qty: number; unit_price: number; amount: number }>;
   member: { full_name?: string; phone?: string } | null;
   gym: {
@@ -36,8 +43,10 @@ export function downloadInvoicePdf(args: {
     gst_number?: string | null; gst_rate?: number | string | null;
   } | null | undefined;
   paymentMethods?: string[];
-}) {
-  const doc = generateInvoicePdf({
+};
+
+function toPdfInput(args: InvoiceArgs): InvoicePdfInput {
+  return {
     gymName: args.gym?.name ?? "Fitness Dream",
     gymTagline: args.gym?.tagline ?? null,
     gymAddress: args.gym?.address ?? null,
@@ -57,32 +66,20 @@ export function downloadInvoicePdf(args: {
     notes: args.invoice.notes,
     terms: args.gym?.invoice_terms ?? null,
     paymentMethods: args.paymentMethods,
-  });
+    periodStart: args.invoice.period_start ?? null,
+    periodEnd: args.invoice.period_end ?? null,
+    paidCash: Number(args.invoice.paid_cash ?? 0),
+    paidUpi: Number(args.invoice.paid_upi ?? 0),
+  };
+}
+
+export function downloadInvoicePdf(args: InvoiceArgs) {
+  const doc = generateInvoicePdf(toPdfInput(args));
   doc.save(`invoice-${args.invoice.number}.pdf`);
 }
 
 export function printInvoicePdf(args: Parameters<typeof downloadInvoicePdf>[0]) {
-  const doc = generateInvoicePdf({
-    gymName: args.gym?.name ?? "Fitness Dream",
-    gymTagline: args.gym?.tagline ?? null,
-    gymAddress: args.gym?.address ?? null,
-    gymPhone: args.gym?.phone ?? null,
-    gymEmail: args.gym?.email ?? null,
-    gymGst: args.gym?.gst_number ?? null,
-    gstRate: args.gym?.gst_rate != null ? Number(args.gym.gst_rate) : 18,
-    currencySymbol: args.gym?.currency_symbol ?? "₹",
-    number: args.invoice.number,
-    issuedAt: args.invoice.issued_at,
-    memberName: args.member?.full_name ?? "Walk-in",
-    memberPhone: args.member?.phone ?? null,
-    items: args.items,
-    subtotal: Number(args.invoice.subtotal),
-    total: Number(args.invoice.total),
-    amountPaid: Number(args.invoice.amount_paid),
-    notes: args.invoice.notes,
-    terms: args.gym?.invoice_terms ?? null,
-    paymentMethods: args.paymentMethods,
-  });
+  const doc = generateInvoicePdf(toPdfInput(args));
   doc.autoPrint();
   const url = doc.output("bloburl");
   const w = window.open(url, "_blank");
@@ -100,27 +97,7 @@ export function printInvoicePdf(args: Parameters<typeof downloadInvoicePdf>[0]) 
 export async function shareInvoicePdfFile(
   args: Parameters<typeof downloadInvoicePdf>[0]
 ): Promise<boolean> {
-  const doc = generateInvoicePdf({
-    gymName: args.gym?.name ?? "Fitness Dream",
-    gymTagline: args.gym?.tagline ?? null,
-    gymAddress: args.gym?.address ?? null,
-    gymPhone: args.gym?.phone ?? null,
-    gymEmail: args.gym?.email ?? null,
-    gymGst: args.gym?.gst_number ?? null,
-    gstRate: args.gym?.gst_rate != null ? Number(args.gym.gst_rate) : 18,
-    currencySymbol: args.gym?.currency_symbol ?? "₹",
-    number: args.invoice.number,
-    issuedAt: args.invoice.issued_at,
-    memberName: args.member?.full_name ?? "Walk-in",
-    memberPhone: args.member?.phone ?? null,
-    items: args.items,
-    subtotal: Number(args.invoice.subtotal),
-    total: Number(args.invoice.total),
-    amountPaid: Number(args.invoice.amount_paid),
-    notes: args.invoice.notes,
-    terms: args.gym?.invoice_terms ?? null,
-    paymentMethods: args.paymentMethods,
-  });
+  const doc = generateInvoicePdf(toPdfInput(args));
   const blob = doc.output("blob");
   const filename = `invoice-${args.invoice.number}.pdf`;
   const file = new File([blob], filename, { type: "application/pdf" });
@@ -263,6 +240,20 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
     doc.text(inv.memberPhone, M, leftY);
     leftY += 12;
   }
+  if (inv.periodStart || inv.periodEnd) {
+    leftY += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text("START DATE", M, leftY);
+    doc.text("END DATE", M + 100, leftY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...INK);
+    doc.text(fmtDate(inv.periodStart ?? null), M, leftY + 13);
+    doc.text(fmtDate(inv.periodEnd ?? null), M + 100, leftY + 13);
+    leftY += 25;
+  }
 
   // From
   doc.setFont("helvetica", "bold");
@@ -335,7 +326,10 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   const cardW = 250;
   const cardX = pw - M - cardW;
   const cardY = afterY + 18;
-  const cardH = 150;
+  const splitRows: Array<[string, number]> = [];
+  if ((inv.paidCash ?? 0) > 0) splitRows.push(["Paid via Cash", inv.paidCash!]);
+  if ((inv.paidUpi ?? 0) > 0) splitRows.push(["Paid via UPI", inv.paidUpi!]);
+  const cardH = 150 + splitRows.length * 17;
 
   doc.setFillColor(...CARD_BG);
   doc.setDrawColor(...HAIRLINE);
@@ -365,6 +359,7 @@ export function generateInvoicePdf(inv: InvoicePdfInput): jsPDF {
   totalRow("Total (incl. GST)", cur(inv.total), true);
   ty += 17;
   totalRow("Amount paid", cur(inv.amountPaid));
+  for (const [l, v] of splitRows) { ty += 17; totalRow(l, cur(v)); }
 
   ty += 10;
   doc.setDrawColor(...HAIRLINE);

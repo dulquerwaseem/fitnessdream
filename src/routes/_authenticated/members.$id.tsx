@@ -379,6 +379,12 @@ function MemberDetail() {
         notes: inv.notes,
         terms: (gym as any)?.invoice_terms ?? null,
         paymentMethods: (invPays ?? []).map(p => p.mode as string),
+        gymGst: (gym as any)?.gst_number ?? null,
+        gstRate: (gym as any)?.gst_rate != null ? Number((gym as any).gst_rate) : 18,
+        periodStart: inv.period_start ?? null,
+        periodEnd: inv.period_end ?? null,
+        paidCash: Number(inv.paid_cash ?? 0),
+        paidUpi: Number(inv.paid_upi ?? 0),
       });
       const blob = doc.output("blob");
       const path = `${id}/invoice-${inv.number}.pdf`;
