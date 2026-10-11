@@ -24,6 +24,10 @@ import { downloadInvoicePdf, generateInvoicePdf, printInvoicePdf } from "@/lib/p
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { MoneyInput } from "@/components/money-input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   ArrowLeft, Phone, Mail, MapPin, Cake, Snowflake, Play, RefreshCcw,
@@ -113,9 +117,12 @@ function MemberDetail() {
   const [renewOpen, setRenewOpen] = useState(false);
   const [renewPlan, setRenewPlan] = useState("");
   const [renewTotal, setRenewTotal] = useState(0);
-  const [renewPaid, setRenewPaid] = useState(0);
-  const [renewMode, setRenewMode] = useState<"today" | "extend">("today");
-  const [renewPayMode, setRenewPayMode] = useState<"cash" | "card" | "upi" | "bank_transfer" | "other">("cash");
+  const [renewCash, setRenewCash] = useState(0);
+  const [renewUpi, setRenewUpi] = useState(0);
+  const renewPaid = renewCash + renewUpi;
+  const [renewMode, setRenewMode] = useState<"today" | "extend" | "custom">("today");
+  const [renewCustomDate, setRenewCustomDate] = useState<Date | undefined>(undefined);
+  const [renewBonus, setRenewBonus] = useState(0);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
@@ -178,9 +185,12 @@ function MemberDetail() {
   const handleRenew = async () => {
     const plan = plans?.find((p) => p.id === renewPlan);
     if (!plan) return toast.error("Select a plan");
-    const baseDate = renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
-    const expiry = addMonthsISO(baseDate, plan.duration_months);
-    const start = renewMode === "extend" ? m.start_date : todayISO();
+    if (renewMode === "custom" && !renewCustomDate) return toast.error("Pick a start date");
+    const customISO = renewCustomDate ? localISO(renewCustomDate) : todayISO();
+    const baseDate = renewMode === "custom" ? customISO
+      : renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
+    const expiry = addMonthsISO(baseDate, plan.duration_months + renewBonus);
+    const start = renewMode === "extend" ? m.start_date : renewMode === "custom" ? customISO : todayISO();
     const total = Number(renewTotal);
     const paid = Number(renewPaid);
     if (total <= 0) return toast.error("Enter total fee");
@@ -195,21 +205,26 @@ function MemberDetail() {
       amount_paid: paid,
       balance_due: balance,
       frozen_at: null,
+      bonus_months: renewBonus,
     }).eq("id", id);
 
     const { data: inv } = await supabase.from("invoices").insert({
       member_id: id, subtotal: total, total, amount_paid: paid,
       status: paid <= 0 ? "unpaid" : paid >= total ? "paid" : "partial",
-      notes: `Renewal: ${plan.name}`,
+      notes: `Renewal: ${plan.name}${renewBonus ? ` (+${renewBonus} bonus month${renewBonus > 1 ? "s" : ""})` : ""}`,
+      period_start: renewMode === "extend" ? baseDate : start, period_end: expiry,
+      paid_cash: renewCash, paid_upi: renewUpi,
     }).select("id").single();
     if (inv) {
       await supabase.from("invoice_items").insert({
         invoice_id: inv.id, description: `Renewal — ${plan.name}`, qty: 1, unit_price: total, amount: total,
       });
     }
-    if (paid > 0) {
-      await supabase.from("payments").insert({ member_id: id, invoice_id: inv?.id ?? null, amount: paid, mode: renewPayMode });
-    }
+    const payRows = [
+      ...(renewCash > 0 ? [{ member_id: id, invoice_id: inv?.id ?? null, amount: renewCash, mode: "cash" as const }] : []),
+      ...(renewUpi > 0 ? [{ member_id: id, invoice_id: inv?.id ?? null, amount: renewUpi, mode: "upi" as const }] : []),
+    ];
+    if (payRows.length) await supabase.from("payments").insert(payRows);
     toast.success("Membership renewed");
     setRenewOpen(false);
     qc.invalidateQueries();
@@ -379,6 +394,12 @@ function MemberDetail() {
         notes: inv.notes,
         terms: (gym as any)?.invoice_terms ?? null,
         paymentMethods: (invPays ?? []).map(p => p.mode as string),
+        gymGst: (gym as any)?.gst_number ?? null,
+        gstRate: (gym as any)?.gst_rate != null ? Number((gym as any).gst_rate) : 18,
+        periodStart: inv.period_start ?? null,
+        periodEnd: inv.period_end ?? null,
+        paidCash: Number(inv.paid_cash ?? 0),
+        paidUpi: Number(inv.paid_upi ?? 0),
       });
       const blob = doc.output("blob");
       const path = `${id}/invoice-${inv.number}.pdf`;
@@ -551,7 +572,7 @@ function MemberDetail() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => { setRenewPlan(""); setRenewPaid(0); setRenewMode("today"); setRenewOpen(true); }}>
+              <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => { setRenewPlan(""); setRenewCash(0); setRenewUpi(0); setRenewBonus(0); setRenewCustomDate(undefined); setRenewMode("today"); setRenewOpen(true); }}>
                 <RefreshCcw className="h-3.5 w-3.5 mr-1" /> Renew
               </Button>
               <Button size="sm" variant="outline" onClick={openPayGeneric}><Plus className="h-3.5 w-3.5 mr-1" /> Add payment</Button>
@@ -824,25 +845,47 @@ function MemberDetail() {
                 <SelectContent>
                   <SelectItem value="today">Today ({fmtDate(todayISO())})</SelectItem>
                   <SelectItem value="extend">Extend from current expiry ({fmtDate(m.expiry_date)})</SelectItem>
+                  <SelectItem value="custom">Custom date</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>Total fee</Label><MoneyInput value={renewTotal} onChange={setRenewTotal} /></div>
-              <div className="space-y-2"><Label>Amount paid</Label><MoneyInput value={renewPaid} onChange={setRenewPaid} /></div>
+              {renewMode === "custom" && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !renewCustomDate && "text-muted-foreground")}>
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {renewCustomDate ? fmtDate(renewCustomDate) : "Pick a start date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={renewCustomDate} onSelect={setRenewCustomDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Payment method</Label>
-              <Select value={renewPayMode} onValueChange={(v) => setRenewPayMode(v as any)}>
+              <Label>Extra / bonus months</Label>
+              <Select value={String(renewBonus)} onValueChange={(v) => setRenewBonus(Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {[0, 1, 2, 3].map(n => <SelectItem key={n} value={String(n)}>{n === 0 ? "None" : `+${n} month${n > 1 ? "s" : ""} (free)`}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {(() => {
+                const plan = plans?.find(p => p.id === renewPlan);
+                if (!plan) return null;
+                const base = renewMode === "custom" ? (renewCustomDate ? localISO(renewCustomDate) : null)
+                  : renewMode === "extend" && m.expiry_date && m.expiry_date > todayISO() ? m.expiry_date : todayISO();
+                return base ? <p className="text-xs text-muted-foreground">New end date: {fmtDate(addMonthsISO(base, plan.duration_months + renewBonus))}</p> : null;
+              })()}
+            </div>
+            <div className="space-y-2"><Label>Total plan fee</Label><MoneyInput value={renewTotal} onChange={setRenewTotal} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Amount paid in Cash (INR)</Label><MoneyInput value={renewCash} onChange={setRenewCash} /></div>
+              <div className="space-y-2"><Label>Amount paid via UPI (INR)</Label><MoneyInput value={renewUpi} onChange={setRenewUpi} /></div>
+            </div>
+            <div className="flex items-center justify-between text-sm border-t pt-3">
+              <span className="text-muted-foreground">Amount paid now</span>
+              <span className="font-semibold tabular-nums">{fmtCurrency(renewPaid)}</span>
             </div>
           </div>
           <DialogFooter>
