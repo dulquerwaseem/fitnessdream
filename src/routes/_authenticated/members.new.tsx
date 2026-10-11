@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/page-header";
 import { MoneyInput } from "@/components/money-input";
 import { normalizePhone } from "@/lib/phone";
-import { addMonthsISO, todayISO } from "@/lib/format";
+import { addMonthsISO, fmtCurrency, todayISO } from "@/lib/format";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -54,11 +54,12 @@ function NewMemberPage() {
     emergency_contact: "",
     plan_id: "",
     total_fee: 0,
-    amount_paid: 0,
+    paid_cash: 0,
+    paid_upi: 0,
+    bonus_months: 0,
     start_date: todayISO(),
     trainer_id: "",
     notes: "",
-    payment_mode: "cash" as "cash" | "card" | "upi" | "bank_transfer" | "other",
   });
   const [saving, setSaving] = useState(false);
 
@@ -76,7 +77,8 @@ function NewMemberPage() {
   }, [lead]);
 
   const chosenPlan = plans?.find((p) => p.id === form.plan_id);
-  const expiry = chosenPlan && form.start_date ? addMonthsISO(form.start_date, chosenPlan.duration_months) : "";
+  const expiry = chosenPlan && form.start_date ? addMonthsISO(form.start_date, chosenPlan.duration_months + form.bonus_months) : "";
+  const amountPaid = Number(form.paid_cash) + Number(form.paid_upi);
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -87,7 +89,7 @@ function NewMemberPage() {
       return;
     }
     setSaving(true);
-    const balance = Math.max(0, Number(form.total_fee) - Number(form.amount_paid));
+    const balance = Math.max(0, Number(form.total_fee) - amountPaid);
     const { data: member, error } = await supabase
       .from("members")
       .insert({
@@ -101,10 +103,11 @@ function NewMemberPage() {
         plan_id: form.plan_id || null,
         plan_type: chosenPlan?.name ?? null,
         total_fee: Number(form.total_fee),
-        amount_paid: Number(form.amount_paid),
+        amount_paid: amountPaid,
         balance_due: balance,
         start_date: form.start_date,
-        expiry_date: expiry || addMonthsISO(form.start_date, 1),
+        expiry_date: expiry || addMonthsISO(form.start_date, 1 + form.bonus_months),
+        bonus_months: form.bonus_months,
         trainer_id: form.trainer_id || null,
         notes: form.notes || null,
       })
@@ -124,9 +127,13 @@ function NewMemberPage() {
           member_id: member.id,
           subtotal: Number(form.total_fee),
           total: Number(form.total_fee),
-          amount_paid: Number(form.amount_paid),
-          status: Number(form.amount_paid) <= 0 ? "unpaid" : Number(form.amount_paid) >= Number(form.total_fee) ? "paid" : "partial",
-          notes: `Membership: ${chosenPlan?.name ?? "custom"}`,
+          amount_paid: amountPaid,
+          status: amountPaid <= 0 ? "unpaid" : amountPaid >= Number(form.total_fee) ? "paid" : "partial",
+          notes: `Membership: ${chosenPlan?.name ?? "custom"}${form.bonus_months ? ` (+${form.bonus_months} bonus month${form.bonus_months > 1 ? "s" : ""})` : ""}`,
+          period_start: form.start_date,
+          period_end: expiry || addMonthsISO(form.start_date, 1 + form.bonus_months),
+          paid_cash: Number(form.paid_cash),
+          paid_upi: Number(form.paid_upi),
         })
         .select("id")
         .single();
@@ -139,14 +146,11 @@ function NewMemberPage() {
           amount: Number(form.total_fee),
         });
       }
-      if (Number(form.amount_paid) > 0) {
-        await supabase.from("payments").insert({
-          member_id: member.id,
-          invoice_id: inv?.id ?? null,
-          amount: Number(form.amount_paid),
-          mode: form.payment_mode,
-        });
-      }
+      const payRows = [
+        ...(form.paid_cash > 0 ? [{ member_id: member.id, invoice_id: inv?.id ?? null, amount: Number(form.paid_cash), mode: "cash" as const }] : []),
+        ...(form.paid_upi > 0 ? [{ member_id: member.id, invoice_id: inv?.id ?? null, amount: Number(form.paid_upi), mode: "upi" as const }] : []),
+      ];
+      if (payRows.length) await supabase.from("payments").insert(payRows);
     }
 
     if (leadId) {
@@ -203,21 +207,22 @@ function NewMemberPage() {
               </Select>
             </div>
             <div className="space-y-2"><Label>Start date</Label><Input type="date" value={form.start_date} onChange={(e) => set("start_date", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Expiry (auto)</Label><Input value={expiry} readOnly className="bg-muted/50" /></div>
-            <div className="space-y-2"><Label>Total fee</Label><MoneyInput step="0.01" value={form.total_fee} onChange={(v) => set("total_fee", v)} /></div>
-            <div className="space-y-2"><Label>Amount paid</Label><MoneyInput step="0.01" value={form.amount_paid} onChange={(v) => set("amount_paid", v)} /></div>
             <div className="space-y-2">
-              <Label>Payment method</Label>
-              <Select value={form.payment_mode} onValueChange={(v) => set("payment_mode", v as typeof form.payment_mode)}>
+              <Label>Extra / bonus months</Label>
+              <Select value={String(form.bonus_months)} onValueChange={(v) => set("bonus_months", Number(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank transfer</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  {[0, 1, 2, 3].map(n => <SelectItem key={n} value={String(n)}>{n === 0 ? "None" : `+${n} month${n > 1 ? "s" : ""} (free)`}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2"><Label>End date (auto)</Label><Input value={expiry} readOnly className="bg-muted/50" /></div>
+            <div className="space-y-2 sm:col-span-2"><Label>Total plan fee</Label><MoneyInput step="0.01" value={form.total_fee} onChange={(v) => set("total_fee", v)} /></div>
+            <div className="space-y-2"><Label>Amount paid in Cash (INR)</Label><MoneyInput step="0.01" value={form.paid_cash} onChange={(v) => set("paid_cash", v)} /></div>
+            <div className="space-y-2"><Label>Amount paid via UPI (INR)</Label><MoneyInput step="0.01" value={form.paid_upi} onChange={(v) => set("paid_upi", v)} /></div>
+            <div className="sm:col-span-2 flex items-center justify-between text-sm border-t pt-3">
+              <span className="text-muted-foreground">Amount paid now</span>
+              <span className="font-semibold tabular-nums">{fmtCurrency(amountPaid)}</span>
             </div>
             <div className="space-y-2 sm:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
           </CardContent>
