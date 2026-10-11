@@ -160,6 +160,10 @@ export type Database = {
           member_id: string | null
           notes: string | null
           number: string
+          paid_cash: number
+          paid_upi: number
+          period_end: string | null
+          period_start: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           subtotal: number
           total: number
@@ -176,6 +180,10 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           number?: string
+          paid_cash?: number
+          paid_upi?: number
+          period_end?: string | null
+          period_start?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           total?: number
@@ -192,6 +200,10 @@ export type Database = {
           member_id?: string | null
           notes?: string | null
           number?: string
+          paid_cash?: number
+          paid_upi?: number
+          period_end?: string | null
+          period_start?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           subtotal?: number
           total?: number
@@ -469,6 +481,7 @@ export type Database = {
           address: string | null
           amount_paid: number
           balance_due: number
+          bonus_months: number
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -496,6 +509,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          bonus_months?: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -523,6 +537,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          bonus_months?: number
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
