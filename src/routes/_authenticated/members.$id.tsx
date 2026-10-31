@@ -19,11 +19,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { fmtCurrency, fmtDate, fmtDateTime, initials, addMonthsISO, todayISO, localISO } from "@/lib/format";
+import { computeStatus } from "@/lib/member-status";
 import { normalizePhone, openWhatsApp, renderTemplate } from "@/lib/phone";
 import { downloadInvoicePdf, generateInvoicePdf, printInvoicePdf } from "@/lib/pdf";
 import { softDelete } from "@/lib/soft-delete";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { MoneyInput } from "@/components/money-input";
+import { MemberBiometricTab } from "@/components/member-biometric-tab";
+import { MemberAttendanceTab } from "@/components/member-attendance-tab";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -50,17 +53,6 @@ const statusStyles: Record<string, string> = {
   expired: "bg-destructive/10 text-destructive border-destructive/30",
   frozen: "bg-muted text-muted-foreground border-border",
 };
-
-function computeStatus(m: any): string {
-  if (!m) return "expired";
-  if (m.frozen_at) return "frozen";
-  const today = todayISO();
-  if (!m.expiry_date) return "expired";
-  if (m.expiry_date < today) return "expired";
-  const soon = new Date(); soon.setDate(soon.getDate() + 7);
-  if (m.expiry_date <= localISO(soon)) return "expiring_soon";
-  return "active";
-}
 
 function MemberDetail() {
   const { id } = Route.useParams();
@@ -594,7 +586,8 @@ function MemberDetail() {
           <TabsTrigger value="membership">Membership</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="pt">Personal Training</TabsTrigger>
-          
+          <TabsTrigger value="biometric">Biometric</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="notes">Notes & Activity</TabsTrigger>
         </TabsList>
@@ -756,8 +749,15 @@ function MemberDetail() {
           </Card>
         </TabsContent>
 
+        {/* BIOMETRIC */}
+        <TabsContent value="biometric">
+          <MemberBiometricTab member={m} memberId={id} />
+        </TabsContent>
 
-
+        {/* ATTENDANCE */}
+        <TabsContent value="attendance">
+          <MemberAttendanceTab memberId={id} />
+        </TabsContent>
 
         {/* MESSAGES */}
         <TabsContent value="messages" className="space-y-4">

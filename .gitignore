@@ -20,6 +20,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Biometric bridge (runs on the gym PC; its .env holds a Supabase service_role key)
+fitness-dream-bridge/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

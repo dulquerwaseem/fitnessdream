@@ -53,6 +53,76 @@ export type Database = {
         }
         Relationships: []
       }
+      biometric_attendance: {
+        Row: {
+          created_at: string
+          device_ip: string
+          device_user_id: string
+          id: string
+          io_state: number | null
+          member_id: string | null
+          punch_time: string
+          verify_type: number | null
+        }
+        Insert: {
+          created_at?: string
+          device_ip: string
+          device_user_id: string
+          id?: string
+          io_state?: number | null
+          member_id?: string | null
+          punch_time: string
+          verify_type?: number | null
+        }
+        Update: {
+          created_at?: string
+          device_ip?: string
+          device_user_id?: string
+          id?: string
+          io_state?: number | null
+          member_id?: string | null
+          punch_time?: string
+          verify_type?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_attendance_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      biometric_device_enrollment: {
+        Row: {
+          device_ip: string
+          enrolled: boolean
+          member_id: string
+          synced_at: string | null
+        }
+        Insert: {
+          device_ip: string
+          enrolled?: boolean
+          member_id: string
+          synced_at?: string | null
+        }
+        Update: {
+          device_ip?: string
+          enrolled?: boolean
+          member_id?: string
+          synced_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "biometric_device_enrollment_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gym_settings: {
         Row: {
           address: string | null
@@ -481,6 +551,7 @@ export type Database = {
           address: string | null
           amount_paid: number
           balance_due: number
+          biometric_uid: number | null
           bonus_months: number
           created_at: string
           deleted_at: string | null
@@ -509,6 +580,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          biometric_uid?: number | null
           bonus_months?: number
           created_at?: string
           deleted_at?: string | null
@@ -537,6 +609,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          biometric_uid?: number | null
           bonus_months?: number
           created_at?: string
           deleted_at?: string | null
