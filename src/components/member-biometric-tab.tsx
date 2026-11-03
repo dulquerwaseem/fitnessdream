@@ -115,7 +115,7 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
         .update({ biometric_active: true })
         .eq("id", memberId);
       if (error) throw error;
-      toast.success("Biometric access re-enabled. The member will be added back to the devices within ~5 minutes.");
+      toast.success("Biometric access re-enabled. The member will be added back to the devices within ~5 minutes. Ask them to re-scan their fingerprint at the F22 device.");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not re-enable biometric access");
     } finally {
