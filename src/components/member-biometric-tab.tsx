@@ -25,6 +25,7 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
   const qc = useQueryClient();
   const [removeOpen, setRemoveOpen] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [reenabling, setReenabling] = useState(false);
 
   const { data: enrollments } = useQuery({
     queryKey: ["member-biometric-enrollment", memberId],
@@ -104,6 +105,25 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
     invalidate();
   };
 
+  // Flip the member back on; the sync bridge re-adds them (same biometric ID)
+  // to any device whose enrollment row isn't enrolled = true.
+  const reenable = async () => {
+    setReenabling(true);
+    try {
+      const { error } = await supabase
+        .from("members")
+        .update({ biometric_active: true })
+        .eq("id", memberId);
+      if (error) throw error;
+      toast.success("Biometric access re-enabled. The member will be added back to the devices within ~5 minutes.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not re-enable biometric access");
+    } finally {
+      setReenabling(false);
+      invalidate();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
@@ -154,6 +174,9 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
                   ? "Biometric access was turned off. The sync bridge will remove the member from the devices on its next pass (within ~5 minutes)."
                   : "Biometric access is turned off. The member has been removed from the devices."}
               </p>
+              <Button size="sm" onClick={reenable} disabled={reenabling}>
+                {reenabling ? "Re-enabling…" : "Re-enable Biometric"}
+              </Button>
             </div>
           )}
 
