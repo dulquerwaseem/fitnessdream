@@ -11,13 +11,14 @@ import { fmtDateTime } from "@/lib/format";
 import { DEVICE_IPS, floorLabel, nextBiometricUid } from "@/lib/biometric";
 import { computeStatus } from "@/lib/member-status";
 
-type BiometricStatus = "not_enrolled" | "pending" | "active" | "blocked";
+type BiometricStatus = "not_enrolled" | "pending" | "active" | "blocked" | "removed";
 
 const statusMeta: Record<BiometricStatus, { label: string; className: string }> = {
   not_enrolled: { label: "Not Enrolled", className: "bg-muted text-muted-foreground border-border" },
   pending: { label: "Pending Fingerprint Scan", className: "bg-warning/15 text-warning border-warning/30" },
   active: { label: "Active", className: "bg-success/15 text-success border-success/30" },
   blocked: { label: "Blocked", className: "bg-destructive/10 text-destructive border-destructive/30" },
+  removed: { label: "Removed", className: "bg-muted text-muted-foreground border-border" },
 };
 
 export function MemberBiometricTab({ member, memberId }: { member: any; memberId: string }) {
@@ -40,16 +41,18 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
     ? "blocked"
     : member.biometric_uid == null
       ? "not_enrolled"
-      : bothEnrolled
-        ? "active"
-        : "pending";
+      : member.biometric_active === false
+        ? "removed"
+        : bothEnrolled
+          ? "active"
+          : "pending";
 
   const enrolledAt = rows
     .filter((r) => r.enrolled && r.synced_at)
     .map((r) => r.synced_at as string)
     .sort()[0];
 
-  const showRemove = member.biometric_uid != null && rows.length > 0;
+  const showRemove = member.biometric_uid != null && rows.length > 0 && status !== "removed";
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["member", memberId] });
@@ -84,22 +87,20 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
     }
   };
 
+  // Only flag the member as inactive. Enrollment rows are left as-is: the sync
+  // bridge looks for enrolled = true rows whose member has biometric_active =
+  // false, deletes them from the F22, and then sets enrolled = false itself.
+  // Deleting or clearing the rows here would hide the member from the bridge.
   const remove = async () => {
-    const { error } = await supabase.from("biometric_device_enrollment").delete().eq("member_id", memberId);
+    const { error } = await supabase
+      .from("members")
+      .update({ biometric_active: false })
+      .eq("id", memberId);
     if (error) {
       toast.error(error.message);
       return;
     }
-    const { error: memberError } = await supabase
-      .from("members")
-      .update({ biometric_active: false })
-      .eq("id", memberId);
-    if (memberError) {
-      toast.error(memberError.message);
-      invalidate();
-      return;
-    }
-    toast.success("Removed from both devices");
+    toast.success("Removal queued. The sync bridge will remove them from the devices within ~5 minutes.");
     invalidate();
   };
 
@@ -145,7 +146,18 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
             </div>
           )}
 
-          {(status === "pending" || status === "active" || status === "blocked") && (
+          {status === "removed" && (
+            <div className="space-y-2 text-sm">
+              <div>Biometric ID: <span className="font-mono font-medium">{member.biometric_uid}</span></div>
+              <p className="text-muted-foreground">
+                {enrolledIps.size > 0
+                  ? "Biometric access was turned off. The sync bridge will remove the member from the devices on its next pass (within ~5 minutes)."
+                  : "Biometric access is turned off. The member has been removed from the devices."}
+              </p>
+            </div>
+          )}
+
+          {(status === "pending" || status === "active" || status === "blocked" || status === "removed") && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {DEVICE_IPS.map((ip) => {
                 const row = rows.find((r) => r.device_ip === ip);
@@ -178,11 +190,7 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
         open={removeOpen}
         onOpenChange={setRemoveOpen}
         title="Remove biometric access?"
-        description={
-          expired
-            ? "This deletes the member's enrollment on both F22 devices. Their biometric ID is kept in case they re-enroll later."
-            : "This deletes the member's enrollment on both F22 devices right now. Their membership is still active, so the sync bridge will re-enroll them on its next pass (within ~5 minutes) using the same biometric ID — this is a temporary kick, not a permanent block, unless you also freeze or expire their membership."
-        }
+        description="This turns off the member's biometric access. The sync bridge removes them from the F22 devices on its next pass (within ~5 minutes) and will not re-add them. Their biometric ID is kept."
         confirmLabel="Remove from device"
         onConfirm={remove}
       />
