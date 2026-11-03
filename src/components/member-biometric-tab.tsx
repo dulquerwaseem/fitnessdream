@@ -62,7 +62,7 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
       const uid = await nextBiometricUid();
       const { data: updated, error: updateError } = await supabase
         .from("members")
-        .update({ biometric_uid: uid })
+        .update({ biometric_uid: uid, biometric_active: true })
         .eq("id", memberId)
         .is("biometric_uid", null)
         .select("id")
@@ -88,6 +88,15 @@ export function MemberBiometricTab({ member, memberId }: { member: any; memberId
     const { error } = await supabase.from("biometric_device_enrollment").delete().eq("member_id", memberId);
     if (error) {
       toast.error(error.message);
+      return;
+    }
+    const { error: memberError } = await supabase
+      .from("members")
+      .update({ biometric_active: false })
+      .eq("id", memberId);
+    if (memberError) {
+      toast.error(memberError.message);
+      invalidate();
       return;
     }
     toast.success("Removed from both devices");

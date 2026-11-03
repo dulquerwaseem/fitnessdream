@@ -551,6 +551,7 @@ export type Database = {
           address: string | null
           amount_paid: number
           balance_due: number
+          biometric_active: boolean | null
           biometric_uid: number | null
           bonus_months: number
           created_at: string
@@ -580,6 +581,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          biometric_active?: boolean | null
           biometric_uid?: number | null
           bonus_months?: number
           created_at?: string
@@ -609,6 +611,7 @@ export type Database = {
           address?: string | null
           amount_paid?: number
           balance_due?: number
+          biometric_active?: boolean | null
           biometric_uid?: number | null
           bonus_months?: number
           created_at?: string
