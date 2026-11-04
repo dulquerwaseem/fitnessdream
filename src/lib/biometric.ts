@@ -1,9 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const DEVICE_IPS = ["192.168.1.201", "192.168.1.202"] as const;
+export const DEVICE_IPS = ["192.168.1.7", "192.168.1.202"] as const;
 
 const FLOOR_LABELS: Record<string, string> = {
-  "192.168.1.201": "1st Floor",
+  "192.168.1.7": "1st Floor",
   "192.168.1.202": "2nd Floor",
 };
 
