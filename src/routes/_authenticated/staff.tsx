@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,25 +105,31 @@ function StaffPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data!.map((s) => (
-            <Card key={s.id} className="card-hover">
-              <CardContent className="p-4 flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials(s.full_name)}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="font-semibold truncate">{s.full_name}</div>
-                  <div className="text-xs text-muted-foreground capitalize">{s.role_label.replace("_"," ")} · {s.phone}</div>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <Badge variant="outline" className={s.active ? "border-success/30 text-success" : "border-border text-muted-foreground"}>
-                    {s.active ? "Active" : "Inactive"}
-                  </Badge>
-                  <Button size="sm" variant="ghost" onClick={() => toggleActive(s.id, s.active)}>
-                    {s.active ? "Deactivate" : "Activate"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <Link key={s.id} to="/staff/$id" params={{ id: s.id }} className="block">
+              <Card className="card-hover">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials(s.full_name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold truncate">{s.full_name}</div>
+                    <div className="text-xs text-muted-foreground capitalize">{s.role_label.replace("_"," ")} · {s.phone}</div>
+                  </div>
+                  <div className="flex flex-col gap-2 items-end">
+                    <Badge variant="outline" className={s.active ? "border-success/30 text-success" : "border-border text-muted-foreground"}>
+                      {s.active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleActive(s.id, s.active); }}
+                    >
+                      {s.active ? "Deactivate" : "Activate"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       )}

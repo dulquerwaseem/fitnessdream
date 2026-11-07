@@ -98,19 +98,25 @@ export type Database = {
         Row: {
           device_ip: string
           enrolled: boolean
-          member_id: string
+          id: string
+          member_id: string | null
+          staff_id: string | null
           synced_at: string | null
         }
         Insert: {
           device_ip: string
           enrolled?: boolean
-          member_id: string
+          id?: string
+          member_id?: string | null
+          staff_id?: string | null
           synced_at?: string | null
         }
         Update: {
           device_ip?: string
           enrolled?: boolean
-          member_id?: string
+          id?: string
+          member_id?: string | null
+          staff_id?: string | null
           synced_at?: string | null
         }
         Relationships: [
@@ -119,6 +125,13 @@ export type Database = {
             columns: ["member_id"]
             isOneToOne: false
             referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "biometric_device_enrollment_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
         ]
@@ -1029,6 +1042,8 @@ export type Database = {
       staff: {
         Row: {
           active: boolean
+          biometric_active: boolean
+          biometric_uid: number | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
@@ -1046,6 +1061,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          biometric_active?: boolean
+          biometric_uid?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -1063,6 +1080,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          biometric_active?: boolean
+          biometric_uid?: number | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
@@ -1079,6 +1098,38 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      staff_attendance: {
+        Row: {
+          check_in: string
+          check_out: string | null
+          created_at: string
+          id: string
+          staff_id: string
+        }
+        Insert: {
+          check_in: string
+          check_out?: string | null
+          created_at?: string
+          id?: string
+          staff_id: string
+        }
+        Update: {
+          check_in?: string
+          check_out?: string | null
+          created_at?: string
+          id?: string
+          staff_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_attendance_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

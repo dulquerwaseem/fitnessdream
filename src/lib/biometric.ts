@@ -27,3 +27,18 @@ export async function nextBiometricUid(): Promise<number> {
   if (next > MAX_UID) throw new Error(`No free biometric UID left (${MIN_UID}-${MAX_UID}).`);
   return next;
 }
+
+/** Same as nextBiometricUid, but takes the max across members AND staff so the
+ * two never get assigned clashing device UIDs. */
+export async function getNextStaffBiometricUid(): Promise<number> {
+  const [{ data: memberRows, error: memberError }, { data: staffRows, error: staffError }] = await Promise.all([
+    supabase.from("members").select("biometric_uid").not("biometric_uid", "is", null).order("biometric_uid", { ascending: false }).limit(1),
+    supabase.from("staff").select("biometric_uid").not("biometric_uid", "is", null).order("biometric_uid", { ascending: false }).limit(1),
+  ]);
+  if (memberError) throw memberError;
+  if (staffError) throw staffError;
+  const maxUid = Math.max(memberRows?.[0]?.biometric_uid ?? 0, staffRows?.[0]?.biometric_uid ?? 0);
+  const next = maxUid + 1;
+  if (next > MAX_UID) throw new Error(`No free biometric UID left (${MIN_UID}-${MAX_UID}).`);
+  return next;
+}
