@@ -25,7 +25,6 @@ import { Route as AuthenticatedLeadsNewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedMembersIdRouteImport } from './routes/_authenticated/members.$id'
 import { Route as AuthenticatedMembersNewRouteImport } from './routes/_authenticated/members.new'
-import { Route as AuthenticatedStaffIdRouteImport } from './routes/_authenticated/staff.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -107,11 +106,6 @@ const AuthenticatedMembersNewRoute = AuthenticatedMembersNewRouteImport.update({
   path: '/members/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedStaffIdRoute = AuthenticatedStaffIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AuthenticatedStaffRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -120,14 +114,13 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/staff': typeof AuthenticatedStaffRouteWithChildren
+  '/staff': typeof AuthenticatedStaffRoute
   '/billing/$id': typeof AuthenticatedBillingIdRoute
   '/billing/new': typeof AuthenticatedBillingNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
-  '/staff/$id': typeof AuthenticatedStaffIdRoute
   '/leads/': typeof AuthenticatedLeadsIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
 }
@@ -138,14 +131,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/staff': typeof AuthenticatedStaffRouteWithChildren
+  '/staff': typeof AuthenticatedStaffRoute
   '/billing/$id': typeof AuthenticatedBillingIdRoute
   '/billing/new': typeof AuthenticatedBillingNewRoute
   '/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/leads/new': typeof AuthenticatedLeadsNewRoute
   '/members/$id': typeof AuthenticatedMembersIdRoute
   '/members/new': typeof AuthenticatedMembersNewRoute
-  '/staff/$id': typeof AuthenticatedStaffIdRoute
   '/leads': typeof AuthenticatedLeadsIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
 }
@@ -158,14 +150,13 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pt': typeof AuthenticatedPtRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/staff': typeof AuthenticatedStaffRouteWithChildren
+  '/_authenticated/staff': typeof AuthenticatedStaffRoute
   '/_authenticated/billing/$id': typeof AuthenticatedBillingIdRoute
   '/_authenticated/billing/new': typeof AuthenticatedBillingNewRoute
   '/_authenticated/leads/$id': typeof AuthenticatedLeadsIdRoute
   '/_authenticated/leads/new': typeof AuthenticatedLeadsNewRoute
   '/_authenticated/members/$id': typeof AuthenticatedMembersIdRoute
   '/_authenticated/members/new': typeof AuthenticatedMembersNewRoute
-  '/_authenticated/staff/$id': typeof AuthenticatedStaffIdRoute
   '/_authenticated/leads/': typeof AuthenticatedLeadsIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
 }
@@ -185,7 +176,6 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
-    | '/staff/$id'
     | '/leads/'
     | '/members/'
   fileRoutesByTo: FileRoutesByTo
@@ -203,7 +193,6 @@ export interface FileRouteTypes {
     | '/leads/new'
     | '/members/$id'
     | '/members/new'
-    | '/staff/$id'
     | '/leads'
     | '/members'
   id:
@@ -222,7 +211,6 @@ export interface FileRouteTypes {
     | '/_authenticated/leads/new'
     | '/_authenticated/members/$id'
     | '/_authenticated/members/new'
-    | '/_authenticated/staff/$id'
     | '/_authenticated/leads/'
     | '/_authenticated/members/'
   fileRoutesById: FileRoutesById
@@ -347,13 +335,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMembersNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/staff/$id': {
-      id: '/_authenticated/staff/$id'
-      path: '/$id'
-      fullPath: '/staff/$id'
-      preLoaderRoute: typeof AuthenticatedStaffIdRouteImport
-      parentRoute: typeof AuthenticatedStaffRoute
-    }
   }
 }
 
@@ -370,23 +351,12 @@ const AuthenticatedBillingRouteChildren: AuthenticatedBillingRouteChildren = {
 const AuthenticatedBillingRouteWithChildren =
   AuthenticatedBillingRoute._addFileChildren(AuthenticatedBillingRouteChildren)
 
-interface AuthenticatedStaffRouteChildren {
-  AuthenticatedStaffIdRoute: typeof AuthenticatedStaffIdRoute
-}
-
-const AuthenticatedStaffRouteChildren: AuthenticatedStaffRouteChildren = {
-  AuthenticatedStaffIdRoute: AuthenticatedStaffIdRoute,
-}
-
-const AuthenticatedStaffRouteWithChildren =
-  AuthenticatedStaffRoute._addFileChildren(AuthenticatedStaffRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPtRoute: typeof AuthenticatedPtRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedStaffRoute: typeof AuthenticatedStaffRouteWithChildren
+  AuthenticatedStaffRoute: typeof AuthenticatedStaffRoute
   AuthenticatedLeadsIdRoute: typeof AuthenticatedLeadsIdRoute
   AuthenticatedLeadsNewRoute: typeof AuthenticatedLeadsNewRoute
   AuthenticatedMembersIdRoute: typeof AuthenticatedMembersIdRoute
@@ -400,7 +370,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPtRoute: AuthenticatedPtRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedStaffRoute: AuthenticatedStaffRouteWithChildren,
+  AuthenticatedStaffRoute: AuthenticatedStaffRoute,
   AuthenticatedLeadsIdRoute: AuthenticatedLeadsIdRoute,
   AuthenticatedLeadsNewRoute: AuthenticatedLeadsNewRoute,
   AuthenticatedMembersIdRoute: AuthenticatedMembersIdRoute,

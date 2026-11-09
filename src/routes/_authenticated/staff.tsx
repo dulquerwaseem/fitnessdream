@@ -15,10 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { initials } from "@/lib/format";
+import { softDelete } from "@/lib/soft-delete";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { StaffBiometricTab } from "@/components/staff-biometric-tab";
 import { StaffAttendanceTab } from "@/components/staff-attendance-tab";
 import { toast } from "sonner";
-import { Plus, UserCog, Phone } from "lucide-react";
+import { Plus, UserCog, Phone, Pencil, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/staff")({
   head: () => ({
@@ -47,6 +49,39 @@ function StaffPage() {
     enabled: !!selected,
   });
   const staffForSheet = freshSelected ?? selected;
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<any>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  const openEdit = () => {
+    setEditForm({
+      full_name: staffForSheet.full_name ?? "",
+      phone: staffForSheet.phone ?? "",
+      email: staffForSheet.email ?? "",
+      role_label: staffForSheet.role_label ?? "trainer",
+      shift_start: staffForSheet.shift_start ?? "",
+      shift_end: staffForSheet.shift_end ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editForm.full_name.trim() || !editForm.phone.trim()) return toast.error("Name and phone are required");
+    const { error } = await supabase.from("staff").update({
+      full_name: editForm.full_name.trim(),
+      phone: editForm.phone.trim(),
+      email: editForm.email || null,
+      role_label: editForm.role_label,
+      shift_start: editForm.shift_start || null,
+      shift_end: editForm.shift_end || null,
+    }).eq("id", staffForSheet.id);
+    if (error) return toast.error(error.message);
+    toast.success("Details updated");
+    setEditOpen(false);
+    qc.invalidateQueries({ queryKey: ["staff", staffForSheet.id] });
+    qc.invalidateQueries({ queryKey: ["staff-list"] });
+  };
 
   const add = async () => {
     if (!form.full_name.trim() || !form.phone.trim()) return toast.error("Name and phone required");
@@ -161,6 +196,12 @@ function StaffPage() {
                     </div>
                   </div>
                 </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button size="sm" variant="outline" onClick={openEdit}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                  <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+                  </Button>
+                </div>
               </SheetHeader>
 
               <Tabs defaultValue="biometric">
@@ -179,6 +220,61 @@ function StaffPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Edit staff details</DialogTitle></DialogHeader>
+          {editForm && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2"><Label>Full name</Label><Input value={editForm.full_name} onChange={e => setEditForm({ ...editForm, full_name: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Email</Label><Input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} /></div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={editForm.role_label} onValueChange={(v) => setEditForm({ ...editForm, role_label: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trainer">Trainer</SelectItem>
+                    <SelectItem value="front_desk">Front desk</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Shift start</Label><Input type="time" value={editForm.shift_start ?? ""} onChange={e => setEditForm({ ...editForm, shift_start: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Shift end</Label><Input type="time" value={editForm.shift_end ?? ""} onChange={e => setEditForm({ ...editForm, shift_end: e.target.value })} /></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button className="gradient-primary text-primary-foreground" onClick={saveEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmActionDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this staff member?"
+        description={`${staffForSheet?.full_name ?? "This staff member"} will be moved to Recently Deleted. You can restore them from Settings within 30 days.`}
+        confirmLabel="Delete staff"
+        typeToConfirm={staffForSheet?.full_name}
+        askReason
+        onConfirm={async (reason) => {
+          try {
+            await softDelete({
+              table: "staff", id: staffForSheet.id, reason,
+              summary: `Deleted staff ${staffForSheet.full_name}`.trim(),
+            });
+            toast.success("Staff member moved to Recently Deleted");
+            setDeleteOpen(false);
+            setSelected(null);
+            qc.invalidateQueries({ queryKey: ["staff-list"] });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Delete failed");
+          }
+        }}
+      />
     </div>
   );
 }
