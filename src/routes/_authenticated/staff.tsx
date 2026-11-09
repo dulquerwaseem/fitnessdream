@@ -155,7 +155,7 @@ function StaffPage() {
             <Card key={s.id} className="card-hover cursor-pointer" onClick={() => setSelected(s)}>
               <CardContent className="p-4 flex items-center gap-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials(s.full_name)}</AvatarFallback>
+                  <AvatarFallback>{initials(s.full_name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold truncate">{s.full_name}</div>
@@ -186,7 +186,7 @@ function StaffPage() {
               <SheetHeader className="mb-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials(staffForSheet.full_name)}</AvatarFallback>
+                    <AvatarFallback>{initials(staffForSheet.full_name)}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1 text-left">
                     <SheetTitle className="truncate">{staffForSheet.full_name}</SheetTitle>

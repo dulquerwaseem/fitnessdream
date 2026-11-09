@@ -546,7 +546,7 @@ function MemberDetail() {
             <div className="flex items-start gap-6">
               <Avatar className="h-20 w-20 shrink-0">
                 {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} /> : null}
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-display font-bold">{initials(m.full_name)}</AvatarFallback>
+                <AvatarFallback className="text-xl">{initials(m.full_name)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">

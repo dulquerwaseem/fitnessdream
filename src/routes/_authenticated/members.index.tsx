@@ -145,7 +145,7 @@ function MembersPage() {
                 <CardContent className="flex items-center gap-4 p-4">
                   <Avatar className="h-11 w-11">
                     {m.photo_url ? <img src={m.photo_url} alt={m.full_name!} loading="lazy" decoding="async" /> : null}
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    <AvatarFallback>
                       {initials(m.full_name)}
                     </AvatarFallback>
                   </Avatar>
