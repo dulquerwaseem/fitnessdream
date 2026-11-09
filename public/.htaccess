@@ -1,0 +1,40 @@
+# Hostinger shared hosting serves Node.js apps via Apache + Phusion Passenger
+# in front of the app (LiteSpeed in Apache-compatible mode). Without this file,
+# Apache tries to resolve every request (including client-side SPA routes like
+# /staff/abc123) as a static file under this directory, finds nothing, and
+# serves a 404/blank response instead of handing the request to the Node
+# process — which is why the URL changes on click but the page stays blank.
+#
+# IMPORTANT — before relying on this file:
+# 1. Check hPanel's Node.js application settings (or File Manager) for an
+#    EXISTING .htaccess at the app's actual document root. hPanel normally
+#    auto-generates one from the "Application Root" / "Application Startup
+#    File" fields when you create the Node.js app there. If one already
+#    exists, reconcile with it instead of letting this file silently
+#    conflict — don't deploy both blindly.
+# 2. Replace REPLACE_WITH_APP_ROOT_ABSOLUTE_PATH below with the real absolute
+#    path hPanel assigned this app (visible in hPanel's Node.js app details,
+#    e.g. /home/<hostinger-username>/domains/<yourdomain>/...). I have no way
+#    to know this value from the repo or this session — a wrong path here
+#    will stop the app from starting at all, so do not leave it unset.
+# 3. PassengerStartupFile below assumes this repo's build output layout
+#    (.output/server/index.mjs, produced by `bun run build` / `npm run
+#    build` with the node-server Nitro preset) and that PassengerAppRoot is
+#    the repository root — adjust if hPanel's app root points somewhere else.
+
+PassengerNodejs /usr/bin/node
+PassengerAppRoot REPLACE_WITH_APP_ROOT_ABSOLUTE_PATH
+PassengerAppType node
+PassengerStartupFile .output/server/index.mjs
+
+RewriteEngine On
+
+# Serve real static files (the built JS/CSS/image assets in this folder)
+# directly instead of proxying them to Node.
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Everything else — including client-side SPA routes with no matching file
+# on disk — goes to the Node app.
+RewriteRule ^$ http://internal/ [P,L]
+RewriteRule ^(.*)$ http://internal/$1 [P,L]
