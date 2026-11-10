@@ -65,7 +65,7 @@ export function StaffBiometricTab({ staff, staffId }: { staff: any; staffId: str
         .select("id")
         .maybeSingle();
       if (updateError) throw updateError;
-      if (!updated) throw new Error("Biometric ID was already assigned to this staff member — refreshing.");
+      if (!updated) throw new Error("Update failed — check permissions.");
 
       const { error: insertError } = await supabase.from("biometric_device_enrollment").insert(
         DEVICE_IPS.map((device_ip) => ({ staff_id: staffId, device_ip, enrolled: false })),
