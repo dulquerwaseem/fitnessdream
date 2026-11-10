@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { BrandLogo } from "@/components/brand-logo";
+import { AppLoadingScreen } from "@/components/app-loading-screen";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -16,13 +16,6 @@ function IndexRedirect() {
       else navigate({ to: "/auth", replace: true });
     });
   }, [navigate]);
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex items-center gap-3 animate-fade-in">
-        <BrandLogo className="h-10 w-10 animate-pulse" />
-        <span className="font-display text-lg font-bold">Fitness Dream</span>
-      </div>
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
 

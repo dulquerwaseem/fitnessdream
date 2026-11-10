@@ -4,36 +4,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
-import { BrandLogo } from "@/components/brand-logo";
+import { AppLoadingScreen } from "@/components/app-loading-screen";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   component: AuthedLayout,
 });
 
+// The fade-out delay below must match .animate-fade-out's duration in
+// styles.css (280ms) so the splash finishes animating before it unmounts.
+const FADE_OUT_MS = 280;
+
 function AuthedLayout() {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     let active = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
-      if (data.user) setAuthed(true);
-      else navigate({ to: "/auth", replace: true });
+      if (data.user) {
+        setLeaving(true);
+        setTimeout(() => { if (active) setAuthed(true); }, FADE_OUT_MS);
+      } else {
+        navigate({ to: "/auth", replace: true });
+      }
     });
     return () => { active = false; };
   }, [navigate]);
 
   if (!authed) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex items-center gap-3 animate-fade-in">
-          <BrandLogo className="h-10 w-10 animate-pulse" />
-          <span className="font-display text-lg font-bold">Fitness Dream</span>
-        </div>
-      </div>
-    );
+    return <AppLoadingScreen leaving={leaving} />;
   }
 
   return (
