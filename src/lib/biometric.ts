@@ -28,6 +28,15 @@ export async function nextBiometricUid(): Promise<number> {
   return next;
 }
 
+const DEVICE_STALE_MS = 15 * 60 * 1000; // ~3x the bridge's default 5-minute poll interval
+
+/** The bridge has no heartbeat — synced_at only advances on a successful sync
+ * cycle — so "online" is inferred from how recently a device last synced. */
+export function isDeviceOnline(lastSyncedAt: string | null): boolean {
+  if (!lastSyncedAt) return false;
+  return Date.now() - new Date(lastSyncedAt).getTime() < DEVICE_STALE_MS;
+}
+
 /** Same as nextBiometricUid, but takes the max across members AND staff so the
  * two never get assigned clashing device UIDs. */
 export async function getNextStaffBiometricUid(): Promise<number> {

@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
+import { Route as AuthenticatedBiometricDevicesRouteImport } from './routes/_authenticated/biometric-devices'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedPtRouteImport } from './routes/_authenticated/pt'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -45,6 +46,12 @@ const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   path: '/billing',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBiometricDevicesRoute =
+  AuthenticatedBiometricDevicesRouteImport.update({
+    id: '/biometric-devices',
+    path: '/biometric-devices',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
+  '/biometric-devices': typeof AuthenticatedBiometricDevicesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -128,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/billing': typeof AuthenticatedBillingRouteWithChildren
+  '/biometric-devices': typeof AuthenticatedBiometricDevicesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pt': typeof AuthenticatedPtRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRouteWithChildren
+  '/_authenticated/biometric-devices': typeof AuthenticatedBiometricDevicesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pt': typeof AuthenticatedPtRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/billing'
+    | '/biometric-devices'
     | '/dashboard'
     | '/pt'
     | '/settings'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/billing'
+    | '/biometric-devices'
     | '/dashboard'
     | '/pt'
     | '/settings'
@@ -201,6 +213,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/billing'
+    | '/_authenticated/biometric-devices'
     | '/_authenticated/dashboard'
     | '/_authenticated/pt'
     | '/_authenticated/settings'
@@ -249,6 +262,13 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof AuthenticatedBillingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/biometric-devices': {
+      id: '/_authenticated/biometric-devices'
+      path: '/biometric-devices'
+      fullPath: '/biometric-devices'
+      preLoaderRoute: typeof AuthenticatedBiometricDevicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -353,6 +373,7 @@ const AuthenticatedBillingRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRouteWithChildren
+  AuthenticatedBiometricDevicesRoute: typeof AuthenticatedBiometricDevicesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPtRoute: typeof AuthenticatedPtRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -367,6 +388,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBillingRoute: AuthenticatedBillingRouteWithChildren,
+  AuthenticatedBiometricDevicesRoute: AuthenticatedBiometricDevicesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPtRoute: AuthenticatedPtRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,

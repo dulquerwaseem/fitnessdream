@@ -8,6 +8,7 @@ import {
   Dumbbell,
   Settings,
   Sparkles,
+  Fingerprint,
 } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 
@@ -31,6 +32,7 @@ const items = [
   { title: "Staff", url: "/staff", icon: UserCog },
   { title: "Billing", url: "/billing", icon: Receipt },
   { title: "Personal Training", url: "/pt", icon: Dumbbell },
+  { title: "Biometric Devices", url: "/biometric-devices", icon: Fingerprint },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
